@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:">
+  <title>agentd</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">a</span> agentd <span id="version" class="muted"></span></div>
+
+    <button id="new-chat" class="new-chat" type="button">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg> New chat
+    </button>
+
+    <nav class="modes">
+      <button class="nav-item active" data-view="chat" data-mode="single">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12v8H9l-4 3v-3H4z"/></svg> Chat
+      </button>
+      <button class="nav-item" data-view="chat" data-mode="team">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="6" cy="7" r="2.3"/><circle cx="14" cy="7" r="2.3"/><circle cx="10" cy="14" r="2.3"/></svg> Agents
+      </button>
+      <button class="nav-item" data-view="automations">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M10 6v4l2.5 2"/></svg> Automations
+      </button>
+    </nav>
+
+    <div class="recents-title">Recents</div>
+    <div id="recents" class="recents"></div>
+
+    <nav class="more">
+      <button class="nav-item" data-view="approvals">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10.5l3.5 3.5L15 6.5"/></svg> Approvals
+        <span id="approval-count" class="count" hidden></span>
+      </button>
+      <button class="nav-item" data-view="logins">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="9" width="11" height="7.5" rx="1.5"/><path d="M7 9V6.5a3 3 0 016 0V9"/></svg> Website passwords
+      </button>
+      <button class="nav-item" data-view="tools">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4a3.5 3.5 0 00-3 5.2L4 14.7 5.3 16l5.5-5.5A3.5 3.5 0 0016 7l-2 2-2-2 2-2a3.5 3.5 0 00-1.5-1z"/></svg> Tools
+      </button>
+    </nav>
+    <button id="update-badge" class="update-badge" type="button" hidden>Update available</button>
+    <div class="status"><span id="status-dot" class="dot"></span><span id="status-text">Connecting…</span></div>
+  </aside>
+
+  <main>
+    <section id="view-chat" class="view active empty">
+      <div id="messages" class="messages"></div>
+
+      <div class="hero" id="hero">
+        <h1 id="hero-title">What can I do for you?</h1>
+        <p id="hero-sub" class="muted">Give a task in plain words. Anything risky waits for your approval.</p>
+      </div>
+
+      <form id="composer" class="composer">
+        <div class="composer-box">
+          <textarea id="task" rows="1" placeholder="Give a task…" autofocus></textarea>
+          <div class="composer-bar">
+            <select id="chat-provider" class="chip" title="AI provider">
+              <option value="" hidden>Choose AI</option>
+              <option value="openai">OpenAI</option>
+              <option value="google_genai">Google</option>
+              <option value="anthropic">Claude</option>
+              <option value="xai">Grok</option>
+            </select>
+            <select id="chat-model" class="chip" title="Model" hidden></select>
+            <select id="effort" class="chip" title="How hard the model thinks. Lower is faster and uses fewer tokens.">
+              <option value="">Effort: default</option>
+              <option value="low">Effort: low</option>
+              <option value="medium">Effort: medium</option>
+              <option value="high">Effort: high</option>
+            </select>
+            <select id="access" class="chip" title="May the agent change files and run commands without asking?">
+              <option value="ask">Ask before acting</option>
+              <option value="auto">Full access</option>
+            </select>
+            <span id="mode-chip" class="mode-chip" hidden>Team of agents</span>
+            <span class="spacer"></span>
+            <button id="send" type="submit" title="Send" aria-label="Send">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15V5M5.5 9.5L10 5l4.5 4.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="suggestions" class="suggestions"></div>
+      </form>
+    </section>
+
+    <section id="view-automations" class="view">
+      <div class="page">
+        <header class="page-head">
+          <div><h2>Automations</h2><p class="muted">Tasks the agent runs for you on a schedule, even when you are not looking.</p></div>
+          <button id="automation-new" class="btn" type="button">New automation</button>
+        </header>
+        <form id="automation-form" class="card form" hidden>
+          <div class="title">New automation</div>
+          <div class="fields one">
+            <label>Name
+              <input id="auto-name" type="text" placeholder="e.g. Morning news digest" maxlength="80" required>
+            </label>
+            <label>What should the agent do?
+              <textarea id="auto-task" rows="3" placeholder="e.g. Find today's top AI news and summarise it in five lines" required></textarea>
+            </label>
+            <div class="row">
+              <label>Who does it
+                <select id="auto-mode">
+                  <option value="single">One agent</option>
+                  <option value="team">Team of agents</option>
+                </select>
+              </label>
+              <label>How often
+                <select id="auto-kind">
+                  <option value="daily">Every day at a time</option>
+                  <option value="interval">Every few minutes or hours</option>
+                </select>
+              </label>
+              <label id="auto-time-field">Time
+                <input id="auto-time" type="time" value="09:00">
+              </label>
+              <label id="auto-days-field">On
+                <select id="auto-days">
+                  <option value="">Every day</option>
+                  <option value="0,1,2,3,4">Weekdays (Mon to Fri)</option>
+                  <option value="5,6">Weekends</option>
+                </select>
+              </label>
+              <label id="auto-every-field" hidden>Repeat every
+                <select id="auto-every">
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60" selected>1 hour</option>
+                  <option value="180">3 hours</option>
+                  <option value="360">6 hours</option>
+                  <option value="720">12 hours</option>
+                </select>
+              </label>
+            </div>
+            <div class="row">
+              <label>Which AI
+                <select id="auto-provider">
+                  <option value="">Same as the chat</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="google_genai">Google</option>
+                  <option value="anthropic">Claude</option>
+                  <option value="xai">Grok</option>
+                </select>
+              </label>
+              <label id="auto-model-field" hidden>Model
+                <select id="auto-model"></select>
+              </label>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Create</button>
+            <button id="automation-cancel" class="btn secondary" type="button">Cancel</button>
+            <span id="automation-error" class="note"></span>
+          </div>
+        </form>
+        <div id="automations" class="list inner"></div>
+      </div>
+    </section>
+
+    <section id="view-logins" class="view">
+      <div class="page">
+        <header class="page-head">
+          <div><h2>Website passwords</h2><p class="muted">Optional. agentd has no account and needs no sign-in. Save a login for another website here (for example a shop) only if you want the agent to sign in there for you. It never sees the password and uses it only on that website. Everything stays on this computer.</p></div>
+        </header>
+        <form id="login-form" class="card form">
+          <div class="title">Save a website login</div>
+          <div class="fields one">
+            <div class="row">
+              <label>Website <input id="login-site" type="text" placeholder="e.g. amazon.in" autocomplete="off" spellcheck="false" required></label>
+              <label>Username or email <input id="login-user" type="text" autocomplete="off" spellcheck="false" required></label>
+              <label>Password <input id="login-pass" type="password" autocomplete="new-password" required></label>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Save login</button>
+            <span id="login-error" class="note"></span>
+          </div>
+        </form>
+        <div id="logins" class="list inner"></div>
+      </div>
+    </section>
+
+    <section id="view-approvals" class="view">
+      <div class="page">
+        <header class="page-head"><div><h2>Approvals</h2><p class="muted">Results and actions waiting for your decision.</p></div></header>
+        <div id="approvals" class="list inner"></div>
+      </div>
+    </section>
+
+    <section id="view-tools" class="view">
+      <div class="page">
+        <header class="page-head">
+          <div><h2>Tools</h2><p class="muted" id="tools-summary">What the agent can use, and whether it must ask first.</p></div>
+          <input id="tool-search" class="search" type="search" placeholder="Search tools">
+        </header>
+        <div id="tools" class="list inner"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <dialog id="key-dialog">
+    <form id="key-form" method="dialog">
+      <h2 id="key-title">Enter your API key</h2>
+      <p class="muted" id="key-help">The key is checked with the provider and saved on this computer only.</p>
+      <input id="key-input" type="password" placeholder="Paste your API key here" autocomplete="off" spellcheck="false">
+      <p id="key-error" class="note"></p>
+      <div class="actions end">
+        <button id="key-cancel" class="btn secondary" type="button">Cancel</button>
+        <button id="key-ok" class="btn" type="submit">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="update-dialog">
+    <form method="dialog" id="update-form">
+      <h2 id="update-title">A new version is available</h2>
+      <p class="muted" id="update-sub"></p>
+      <pre id="update-notes" class="notes"></pre>
+      <p id="update-status" class="note"></p>
+      <div class="actions end">
+        <button id="update-later" class="btn secondary" type="button">Later</button>
+        <button id="update-now" class="btn" type="submit">Update now</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
