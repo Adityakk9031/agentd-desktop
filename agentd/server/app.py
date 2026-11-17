@@ -273,14 +273,26 @@ async def list_tools():
     from agentd.safety.permissions import PermissionPolicy
     from agentd.tools.langchain_tools import get_mcp_tools
 
+    from agentd.runtime.agent import WRITE_WORDS
+
     policy = PermissionPolicy.from_env()
-    tools = await get_mcp_tools()
+    tools = await get_mcp_tools()  # built-in and your own servers
+
+    def permission(tool) -> str:
+        meta = getattr(tool, "metadata", None) or {}
+        action = policy.check(tool.name)[0]
+        if meta.get("agentd_server") and action != "deny":  # same rule the agent applies
+            reads_only = meta.get("readOnlyHint") is True and not meta.get("destructiveHint") and not WRITE_WORDS.search(tool.name)
+            return "allow" if reads_only else "ask"
+        return action
+
     return {
         "tools": [
             {
                 "name": t.name,
                 "description": (getattr(t, "description", "") or "").strip(),
-                "permission": policy.check(t.name)[0],
+                "permission": permission(t),
+                "server": (getattr(t, "metadata", None) or {}).get("agentd_server"),
             }
             for t in tools
         ]
@@ -401,6 +413,44 @@ async def update_install():
 
         asyncio.get_running_loop().create_task(restart_soon())
     return result
+
+
+class ConnectionRequest(BaseModel):
+    name: str
+    transport: str            # "stdio" | "http" | "sse"
+    command: Optional[str] = None
+    args: Optional[list[str]] = None
+    env: Optional[Dict[str, str]] = None
+    url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
+
+
+@app.get("/api/connections")
+async def list_connections():
+    """Your own MCP servers (environment and header values hidden) and how the last load went."""
+    from agentd.tools import connections
+    from agentd.tools.langchain_tools import SERVER_STATUS
+
+    return {"servers": [{**s, "status": SERVER_STATUS.get(s["name"])} for s in connections.listing()]}
+
+
+@app.post("/api/connections")
+async def add_connection(request: ConnectionRequest):
+    from agentd.tools import connections
+
+    try:
+        return connections.add(request.name, request.model_dump(exclude={"name"}, exclude_none=True))
+    except connections.ConnectionError_ as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.delete("/api/connections/{name}")
+async def remove_connection(name: str):
+    from agentd.tools import connections
+
+    if not connections.remove(name):
+        raise HTTPException(status_code=404, detail="No connection with that name")
+    return {"ok": True}
 
 
 class ActionDecision(BaseModel):

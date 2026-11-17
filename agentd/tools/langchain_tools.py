@@ -5,6 +5,7 @@ passes the loaded tools through graph state, so nodes never spawn their own
 subprocesses.
 """
 
+import asyncio
 import logging
 import sys
 from contextlib import AsyncExitStack, asynccontextmanager
@@ -54,6 +55,10 @@ async def mcp_tools_session():
             await stack.aclose()
         except Exception as close_exc:  # pragma: no cover - best-effort cleanup
             logger.warning(f"Error closing failed MCP session: {close_exc}")
+        stack = AsyncExitStack()
+
+    # The user's own MCP servers. One that fails is skipped; the rest still load.
+    tools = list(tools) + await _load_user_servers(stack)
 
     try:
         yield tools
@@ -72,3 +77,34 @@ async def get_mcp_tools() -> List[Any]:
     """
     async with mcp_tools_session() as tools:
         return list(tools)
+
+
+# Status of the user's servers at the last load, shown in the app
+SERVER_STATUS: dict = {}
+
+
+async def _load_user_servers(stack: AsyncExitStack) -> List[Any]:
+    from langchain_mcp_adapters.sessions import create_session
+
+    from agentd.tools import connections
+
+    loaded: List[Any] = []
+    taken = set()
+    for name, config in connections.load().items():
+        try:
+            session = await asyncio.wait_for(stack.enter_async_context(create_session(connections.connection(config))), 30)
+            await asyncio.wait_for(session.initialize(), 30)
+            server_tools = await load_mcp_tools(session)
+        except Exception as exc:
+            SERVER_STATUS[name] = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:200]}"}
+            logger.warning(f"MCP server '{name}' could not be loaded: {exc}")
+            continue
+        for tool in server_tools:
+            if tool.name in taken:
+                continue
+            taken.add(tool.name)
+            tool.metadata = {**(tool.metadata or {}), "agentd_server": name}
+            loaded.append(tool)
+        SERVER_STATUS[name] = {"ok": True, "tools": len(server_tools)}
+        logger.info(f"Loaded {len(server_tools)} tools from MCP server '{name}'")
+    return loaded

@@ -113,11 +113,14 @@ def _chat(args: argparse.Namespace) -> int:
                     print(f"\n  The agent wants to: {event['title']}")
                     if event.get("detail"):
                         print("    " + event["detail"][:600].replace("\n", "\n    "))
-                    reply = input("  Allow? [y]es / [a]lways for this task / [n]o: ").strip().lower()
+                    try:
+                        reply = input("  Allow? [y]es / [a]lways for this task / [n]o: ").strip().lower()
+                    except (EOFError, KeyboardInterrupt):  # nobody at the keyboard: the answer is no
+                        reply = "n"
                     gate.resolve(event["id"], {"y": "once", "yes": "once", "a": "always"}.get(reply, "deny"))
                 loop.run_in_executor(None, ask)
 
-        gate = ActionGate(mode="auto" if args.yes else "ask", on_event=on_event, interactive=sys.stdin.isatty() or args.yes)
+        gate = ActionGate(mode="auto" if args.yes else "ask", on_event=on_event, interactive=sys.stdin.isatty())
         if args.team:
             return await service.run_team(task, on_event=on_event, gate=gate)
         return await service.run_agent(task, on_event=on_event, gate=gate)

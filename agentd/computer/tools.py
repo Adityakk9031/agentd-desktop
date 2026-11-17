@@ -211,8 +211,44 @@ def build_computer_tools(gate: ActionGate) -> List[StructuredTool]:
             handle.write(f"- {datetime.now():%Y-%m-%d}: {clean}\n")
         return "Remembered." + (" Secret-looking parts were left out; passwords belong in Logins." if "«redacted»" in clean else "")
 
-    functions = [list_files, read_file, search_files, write_file, edit_file, run_command, fetch_url, open_on_computer, remember]
+    @_safe
+    async def web_search(query: str, max_results: int = 8) -> str:
+        """Search the web (DuckDuckGo) and return result titles, addresses and snippets. Then use fetch_url or the browser to read a result."""
+        query = (query or "").strip()
+        if not query:
+            return "ERROR: give something to search for."
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True,
+                                     headers={"User-Agent": "Mozilla/5.0 (agentd web search)"}) as client:
+            response = await client.post("https://html.duckduckgo.com/html/", data={"q": query})
+        results = parse_search_results(response.text)[: max(1, min(int(max_results), 15))]
+        if not results:
+            return f"No results for '{query}'."
+        return "\n\n".join(f"{i}. {r['title']}\n   {r['url']}\n   {r['snippet']}" for i, r in enumerate(results, 1))
+
+    functions = [list_files, read_file, search_files, write_file, edit_file, run_command, fetch_url, web_search,
+                 open_on_computer, remember]
     return [StructuredTool.from_function(coroutine=f, name=f.__name__, description=(f.__doc__ or "").strip()) for f in functions]
+
+
+def parse_search_results(page: str) -> List[dict]:
+    """Results from DuckDuckGo's plain HTML page: title, real address, snippet."""
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    results = []
+    blocks = re.split(r'<div class="result results_links', page)[1:]
+    for block in blocks:
+        link = re.search(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
+        if not link:
+            continue
+        href = html.unescape(link.group(1))
+        if "duckduckgo.com/l/" in href:  # redirect wrapper: the real address is in uddg=
+            href = unquote(parse_qs(urlparse(href).query).get("uddg", [href])[0])
+        if "duckduckgo.com/y.js" in href:  # adverts
+            continue
+        snippet = re.search(r'class="result__snippet"[^>]*>(.*?)</a>', block, re.S)
+        clean = lambda text: html.unescape(re.sub(r"<[^>]+>", "", text or "")).strip()
+        results.append({"title": clean(link.group(2)), "url": href, "snippet": clean(snippet.group(1) if snippet else "")[:300]})
+    return results
 
 
 def computer_facts() -> str:

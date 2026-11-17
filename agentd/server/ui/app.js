@@ -618,7 +618,7 @@ function renderTools() {
 
   const groups = new Map();
   for (const tool of shown) {
-    const service = tool.name.split("_")[0];
+    const service = tool.server || tool.name.split("_")[0];
     if (!groups.has(service)) groups.set(service, []);
     groups.get(service).push(tool);
   }
@@ -637,7 +637,46 @@ function renderTools() {
   }));
 }
 
+async function loadConnections() {
+  const list = $("connections");
+  try {
+    const { servers } = await api("/api/connections");
+    list.replaceChildren(...servers.map((s) => el("div", { class: "card tool-row" },
+      el("div", { class: "label" }, s.name, el("code", {}, s.transport === "stdio" ? [s.command, ...(s.args || [])].join(" ") : s.url)),
+      el("div", { class: "desc" }, !s.status ? "Connects the next time the agent starts a task."
+        : s.status.ok ? `Connected: ${s.status.tools} tool${s.status.tools === 1 ? "" : "s"}` : `Could not connect: ${s.status.error}`),
+      deleteButton(async () => { await api(`/api/connections/${encodeURIComponent(s.name)}`, { method: "DELETE" }); loadConnections(); loadTools(); }))));
+  } catch (error) { list.replaceChildren(el("p", { class: "note fail" }, error.message)); }
+}
+
+$("conn-transport").addEventListener("change", () => {
+  const local = $("conn-transport").value === "stdio";
+  $("conn-command-field").hidden = !local;
+  $("conn-url-field").hidden = local;
+});
+
+$("connection-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const local = $("conn-transport").value === "stdio";
+  const secrets = Object.fromEntries($("conn-secrets").value.split("\n").map((line) => line.trim()).filter(Boolean)
+    .map((line) => [line.split("=")[0].trim(), line.slice(line.indexOf("=") + 1).trim()]));
+  const parts = $("conn-command").value.trim().split(/\s+/).filter(Boolean);
+  const body = local
+    ? { name: $("conn-name").value, transport: "stdio", command: parts[0] || "", args: parts.slice(1), env: secrets }
+    : { name: $("conn-name").value, transport: "http", url: $("conn-url").value.trim(), headers: secrets };
+  try {
+    await api("/api/connections", { method: "POST", body: JSON.stringify(body) });
+    $("connection-form").reset();
+    $("conn-command-field").hidden = false; $("conn-url-field").hidden = true;
+    note("conn-error", "ok", "Saved. Checking the connection…");
+    await loadTools();
+    await loadConnections();
+    note("conn-error");
+  } catch (error) { note("conn-error", "fail", error.message); }
+});
+
 async function loadTools() {
+  loadConnections();
   const list = $("tools");
   if (!allTools.length) list.replaceChildren(el("p", { class: "empty-note" }, "Loading tools…"));
   try {

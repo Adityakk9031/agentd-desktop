@@ -49,6 +49,7 @@ include = ["agentd*"]
 
 [tool.setuptools.package-data]
 "agentd.server" = ["ui/*"]
+"agentd" = ["skills/*/SKILL.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

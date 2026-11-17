@@ -199,6 +199,31 @@
           <div><h2>Tools</h2><p class="muted" id="tools-summary">What the agent can use, and whether it must ask first.</p></div>
           <input id="tool-search" class="search" type="search" placeholder="Search tools">
         </header>
+        <form id="connection-form" class="card form">
+          <div class="title">Connect another tool (MCP server)</div>
+          <p class="muted">Any program that speaks MCP can lend the agent its tools: notes apps, calendars, databases, design tools and more. Tools that only read run on their own; anything that changes something asks you first.</p>
+          <div class="fields one">
+            <div class="row">
+              <label>Name <input id="conn-name" type="text" placeholder="e.g. notion" autocomplete="off" spellcheck="false" required></label>
+              <label>How it runs
+                <select id="conn-transport">
+                  <option value="stdio">A program on this computer</option>
+                  <option value="http">A web address</option>
+                </select>
+              </label>
+            </div>
+            <label id="conn-command-field">Command <input id="conn-command" type="text" placeholder="e.g. npx -y @notionhq/notion-mcp-server" autocomplete="off" spellcheck="false"></label>
+            <label id="conn-url-field" hidden>Address <input id="conn-url" type="text" placeholder="https://example.com/mcp" autocomplete="off" spellcheck="false"></label>
+            <label>Secret settings <span class="muted">(optional, one per line: NAME=value; kept on this computer and never shown again)</span>
+              <textarea id="conn-secrets" rows="2" placeholder="NOTION_TOKEN=..." spellcheck="false"></textarea>
+            </label>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Connect</button>
+            <span id="conn-error" class="note"></span>
+          </div>
+        </form>
+        <div id="connections" class="list inner"></div>
         <div id="tools" class="list inner"></div>
       </div>
     </section>

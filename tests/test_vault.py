@@ -1,6 +1,7 @@
 """Login vault, secret scrubbing, live approval-level changes and weekday routines."""
 
 import asyncio
+import re
 from datetime import datetime, timedelta
 
 import pytest
@@ -87,8 +88,8 @@ async def on_site(page, url):
 
 def refs(listing):
     def ref(label):
-        line = next(line for line in listing.splitlines() if label in line)
-        return int(line[1:line.index("]")])
+        line = next(line for line in listing.splitlines() if label in line and "[ref=" in line)
+        return re.search(r"\[ref=(e\d+)\]", line).group(1)
     return ref
 
 

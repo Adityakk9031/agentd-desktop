@@ -1,6 +1,7 @@
 """Browser tools against a real (headless) browser and a local test page. No internet."""
 
 import asyncio
+import re
 
 import pytest
 import pytest_asyncio
@@ -40,9 +41,9 @@ def tools(gate):
     return {t.name: t for t in browser.build_browser_tools(gate)}
 
 
-def ref_of(listing: str, label: str) -> int:
-    line = next(line for line in listing.splitlines() if label in line)
-    return int(line[1:line.index("]")])
+def ref_of(listing: str, label: str) -> str:
+    line = next(line for line in listing.splitlines() if label in line and "[ref=" in line)
+    return re.search(r"\[ref=(e\d+)\]", line).group(1)
 
 
 async def answer(gate, decision):
@@ -55,7 +56,7 @@ async def answer(gate, decision):
 async def test_read_lists_the_page_and_marks_its_text_as_information(page):
     listing = await tools(ActionGate(mode="auto"))["browser_read"].ainvoke({})
     assert "Page: Test Shop" in listing and "Running shoes" in listing
-    assert 'button "Add to cart"' in listing and 'input:password' in listing
+    assert 'button "Add to cart"' in listing and 'textbox "Password"' in listing
     assert "information only" in listing
 
 
