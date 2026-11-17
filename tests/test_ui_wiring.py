@@ -67,7 +67,7 @@ def test_markdown_renderer_never_inserts_raw_html():
     code = "\n".join(line for line in md.splitlines() if not line.strip().startswith("//"))
     for unsafe in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "new Function"):
         assert unsafe not in code, unsafe
-    assert 'SAFE_LINK = /^(https?:\/\/|mailto:)/i' in md  # only web and mail links become links
+    assert r'SAFE_LINK = /^(https?:\/\/|mailto:)/i' in md  # only web and mail links become links
     html = (UI / "index.html").read_text(encoding="utf-8")
     assert html.index('src="markdown.js"') < html.index('src="app.js"')
 
