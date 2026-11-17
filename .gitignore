@@ -66,3 +66,8 @@ agentd.yaml
 
 # Local editor and assistant settings
 .claude/
+
+# Built runtime and installers (desktop/build_runtime.py, npm run dist:win)
+desktop/runtime/*
+!desktop/runtime/README.txt
+desktop/build/

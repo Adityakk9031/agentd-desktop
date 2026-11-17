@@ -734,14 +734,17 @@ as local storage.
   check that drives the real app with a real model (`npm run e2e`).
 
 ### Not done yet
-1. **One-file installer.** The app still needs Python and this folder on the
-   machine. Bundle the runtime (PyInstaller) into the Electron installer.
+1. ~~One-file installer~~: **done for Windows (2026-11-17).**
+   `python desktop/build_runtime.py` then `npx electron-builder --win nsis`
+   gives `agentd Setup 0.1.0.exe` (173 MB; 507 MB installed). Tested: silent
+   install, fresh-install self-test with the bundled runtime, uninstall. The
+   release workflow builds it on Windows and attaches it to each release.
 2. **macOS build.** Code is cross-platform; never built or run on a Mac.
 3. **Code signing** (Apple Developer account, Windows certificate), so
    installers are trusted.
 4. **First release.** No version has been published, so the update popup has
    nothing to offer yet.
-5. **Keys in the OS keychain** instead of `.env` and the vault key file.
+5. Keys in the OS keychain: **vault key done (2026-11-17)**; model keys are still in `.env`.
 6. ~~Mouse-and-keyboard control of other desktop apps~~: **done on Windows
    (2026-11-17)** through UI Automation (see desktop.py); macOS and Linux
    still to do. Vision-only control for apps with no accessible controls
@@ -751,7 +754,7 @@ as local storage.
 8. **Searchable memory** (Phase 4): the agent's notes are one file today.
 9. **Browser for agent teams**: parallel agents would share one window, so
    team agents have no browser yet.
-10. **Effort level for automations** (they use the default).
+10. ~~Effort level for automations~~: **done (2026-11-17).**
 11. **Not yet tried for real:** a full shopping task on a live shop, a real
     Telegram / Discord / Slack message driving the agent, connecting a real
     third-party MCP server through the app, a saved login on a real site.

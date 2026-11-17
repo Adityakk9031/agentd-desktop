@@ -23,11 +23,15 @@ logger = logging.getLogger("agentd.tools.mcp_tools")
 # source checkout that has not been pip-installed.
 PACKAGE_PARENT = Path(__file__).resolve().parents[2]
 
-server_params = StdioServerParameters(
-    command=sys.executable,
-    args=["-m", "agentd.tools.mcp_server"],
-    cwd=str(PACKAGE_PARENT),
-)
+if getattr(sys, "frozen", False):
+    # Inside the installed app there is no Python to run "-m": the app's own exe starts the server
+    server_params = StdioServerParameters(command=sys.executable, args=["mcp"])
+else:
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "agentd.tools.mcp_server"],
+        cwd=str(PACKAGE_PARENT),
+    )
 
 
 @asynccontextmanager

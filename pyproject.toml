@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tenacity>=8.2.0",
     "pyyaml>=6.0",
+    "keyring>=24",
     "langchain>=1.0",
     "langchain-core>=1.0",
     "langgraph>=1.0",

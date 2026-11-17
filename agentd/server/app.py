@@ -490,6 +490,7 @@ class AutomationRequest(BaseModel):
     daily_time: str = "09:00"
     model: str = ""  # "provider:model"; empty = same model as the chat
     weekdays: list[int] = []  # daily only: 0=Mon..6=Sun; empty = every day
+    effort: str = ""  # "low" | "medium" | "high"; empty = the model's default
 
 
 class AutomationToggle(BaseModel):

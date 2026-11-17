@@ -45,6 +45,7 @@ class Automation:
     daily_time: str = "09:00"
     model: str = ""          # "provider:model", or "" to use whatever the chat uses
     weekdays: List[int] = field(default_factory=list)  # daily only: 0=Mon..6=Sun; empty = every day
+    effort: str = ""         # "low" | "medium" | "high"; "" = the model's default
     enabled: bool = True
     created_at: str = ""
     next_run_at: Optional[str] = None
@@ -156,14 +157,17 @@ class AutomationStore:
 
     def create(self, name: str, task: str, mode: str = "single", kind: str = "daily",
                every_minutes: int = 60, daily_time: str = "09:00", model: str = "",
-               weekdays: Optional[List[int]] = None, now: Optional[datetime] = None) -> Automation:
+               weekdays: Optional[List[int]] = None, effort: str = "", now: Optional[datetime] = None) -> Automation:
         model = (model or "").strip()
         weekdays = sorted(set(weekdays or []))
+        effort = (effort or "").strip().lower()
+        if effort not in ("", "low", "medium", "high"):
+            raise AutomationError("Effort must be low, medium or high.")
         validate(name, task, mode, kind, every_minutes, daily_time, model, weekdays)
         now = now or datetime.now()
         a = Automation(
             id=uuid.uuid4().hex[:12], name=name.strip()[:80], task=task.strip(), mode=mode, kind=kind,
-            every_minutes=int(every_minutes), daily_time=daily_time, model=model, weekdays=weekdays,
+            every_minutes=int(every_minutes), daily_time=daily_time, model=model, weekdays=weekdays, effort=effort,
             created_at=now.isoformat(timespec="seconds"),
         )
         a.next_run_at = next_run(a, now).isoformat(timespec="seconds")
@@ -265,6 +269,9 @@ class AutomationScheduler:
         from agentd.models.config import reset_model_override, set_model_override
 
         override = set_model_override(automation.model)  # only for this run
+        from agentd.models.config import reset_effort, set_effort
+
+        effort_token = set_effort(automation.effort) if automation.effort else None
         try:
             result = await self.runner(automation.task, automation.mode)
             answer = result.get("final_answer") or ((result.get("verification") or {}).get("final_output") or {}).get("summary") or "Done."
@@ -282,5 +289,7 @@ class AutomationScheduler:
             status, answer = "failed", f"{type(exc).__name__}: {str(exc)[:500]}"
         finally:
             reset_model_override(override)
+            if effort_token is not None:
+                reset_effort(effort_token)
             self.running.discard(automation_id)
         return self.store.record_run(automation_id, status, answer)

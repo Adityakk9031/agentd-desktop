@@ -10,6 +10,12 @@ import pytest_asyncio
 from agentd.safety.vault import Vault, VaultError, normalise_site, redact, site_matches
 
 
+@pytest.fixture(autouse=True)
+def no_real_keychain(monkeypatch):
+    """Tests never touch the computer's real keychain; the keychain test uses an in-memory one."""
+    monkeypatch.setenv("AGENTD_VAULT_KEYCHAIN", "0")
+
+
 @pytest.fixture
 def vault(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTD_VAULT_DIR", str(tmp_path / "vault"))
@@ -212,3 +218,39 @@ def test_a_run_missed_by_more_than_12_hours_is_skipped_not_fired(tmp_path):
     assert late == []
     skipped = store.get(a.id)
     assert skipped.last_status == "skipped" and skipped.next_run_at > (start + timedelta(days=2)).isoformat()
+
+
+
+def test_vault_key_moves_into_the_keychain(tmp_path, monkeypatch):
+    keyring = pytest.importorskip("keyring")
+    from keyring.backend import KeyringBackend
+
+    class Memory(KeyringBackend):
+        priority = 1
+        store = {}
+
+        def get_password(self, service, user):
+            return self.store.get((service, user))
+
+        def set_password(self, service, user, password):
+            self.store[(service, user)] = password
+
+        def delete_password(self, service, user):
+            self.store.pop((service, user), None)
+
+    monkeypatch.setenv("AGENTD_VAULT_DIR", str(tmp_path / "v"))
+    monkeypatch.setenv("AGENTD_VAULT_KEYCHAIN", "0")
+    old = Vault()
+    old.add("github.com", "sam", "pw-123456")          # an existing vault with a key file
+    assert old.key_file.exists()
+
+    previous = keyring.get_keyring()
+    keyring.set_keyring(Memory())
+    try:
+        monkeypatch.setenv("AGENTD_VAULT_KEYCHAIN", "1")
+        moved = Vault()
+        assert moved.find_for("https://github.com")["password"] == "pw-123456"  # still opens
+        assert not moved.key_file.exists()                                    # key file gone
+        assert list(Memory.store)[0][0] == "agentd-vault"                     # key is in the keychain
+    finally:
+        keyring.set_keyring(previous)

@@ -129,3 +129,21 @@ async def test_automation_runs_with_its_own_model(store, monkeypatch):
 def test_automation_model_must_be_provider_and_model(store):
     with pytest.raises(AutomationError):
         store.create("A", "task", model="gpt-5.4", now=NOON)
+
+
+
+@pytest.mark.asyncio
+async def test_automation_runs_with_its_own_effort(store):
+    from agentd.models.config import current_effort
+
+    a = store.create("A", "task", kind="interval", every_minutes=30, effort="low", now=NOON)
+    seen = {}
+
+    async def runner(task, mode):
+        seen["effort"] = current_effort()
+        return {"final_answer": "ok"}
+
+    await AutomationScheduler(store, runner).run_now(a.id)
+    assert seen["effort"] == "low" and current_effort() is None
+    with pytest.raises(AutomationError):
+        store.create("B", "task", effort="extreme", now=NOON)

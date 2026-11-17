@@ -100,9 +100,17 @@ def build_computer_tools(gate: ActionGate) -> List[StructuredTool]:
         root = resolve_path(path)
 
         def scan() -> List[str]:
+            import time as _time
+
             hits: List[str] = []
             needle = containing.lower()
+            deadline = _time.monotonic() + 20  # a search of a whole drive must not hang the task
+            seen = 0
             for folder, dirs, files in os.walk(root):
+                seen += len(files)
+                if _time.monotonic() > deadline or seen > 200_000:
+                    hits.append("[stopped searching after 20 seconds; search a smaller folder for complete results]")
+                    return hits
                 dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
                 for name in files:
                     if not fnmatch.fnmatch(name.lower(), name_pattern.lower()):

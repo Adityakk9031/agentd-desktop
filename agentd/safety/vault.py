@@ -8,9 +8,9 @@ never enters the model's context, a log, or the chat.
 A login is only filled on the site it was saved for (or a subdomain of it),
 so a look-alike page cannot get it, whatever the agent was told.
 
-Storage: one file encrypted with Fernet (AES-128-CBC + HMAC); the key sits
-beside it in its own file readable only by this user. Moving the key to the
-operating system keychain is planned.
+Storage: one file encrypted with Fernet (AES-128-CBC + HMAC). The key is kept
+in the operating system keychain when available (Windows Credential Manager,
+macOS Keychain), otherwise in a file beside it readable only by this user.
 """
 
 import json
@@ -44,6 +44,37 @@ def site_matches(saved: str, page_url: str) -> bool:
     return host == saved or host.endswith("." + saved)
 
 
+KEYCHAIN_SERVICE = "agentd-vault"
+
+
+def _keychain_key(folder: Path) -> Optional[bytes]:
+    """The vault key from the operating system keychain (Windows Credential Manager, macOS Keychain).
+
+    Used when the ``keyring`` package is installed and AGENTD_VAULT_KEYCHAIN is not "0". A key file
+    from an earlier version is moved into the keychain and deleted. Returns None to fall back to a file.
+    """
+    if os.getenv("AGENTD_VAULT_KEYCHAIN", "1") in ("0", "false", "no"):
+        return None
+    try:
+        import keyring
+        from keyring.errors import KeyringError
+    except ImportError:
+        return None
+    account = str(folder.resolve())
+    try:
+        stored = keyring.get_password(KEYCHAIN_SERVICE, account)
+        if stored:
+            return stored.encode("ascii")
+        old = folder / "vault.key"
+        key = old.read_bytes().strip() if old.exists() else Fernet.generate_key()
+        keyring.set_password(KEYCHAIN_SERVICE, account, key.decode("ascii"))
+        if keyring.get_password(KEYCHAIN_SERVICE, account) == key.decode("ascii") and old.exists():
+            old.unlink()  # the keychain now holds it
+        return key
+    except (KeyringError, OSError, RuntimeError):
+        return None
+
+
 class Vault:
     def __init__(self, folder: Optional[str] = None):
         self.folder = Path(folder or os.getenv("AGENTD_VAULT_DIR") or Path("data") / "vault")
@@ -54,6 +85,9 @@ class Vault:
 
     def _fernet(self) -> Fernet:
         self.folder.mkdir(parents=True, exist_ok=True)
+        key = _keychain_key(self.folder)
+        if key:
+            return Fernet(key)
         if not self.key_file.exists():
             self.key_file.write_bytes(Fernet.generate_key())
             try:

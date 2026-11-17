@@ -785,6 +785,7 @@ $("automation-form").addEventListener("submit", async (event) => {
       name: $("auto-name").value, task: $("auto-task").value, mode: $("auto-mode").value, kind: $("auto-kind").value,
       every_minutes: Number($("auto-every").value), daily_time: $("auto-time").value || "09:00",
       weekdays: $("auto-days").value ? $("auto-days").value.split(",").map(Number) : [],
+      effort: $("auto-effort").value,
       model: provider ? provider + ":" + $("auto-model").value : "",
     }) });
     $("automation-form").reset();

@@ -261,20 +261,28 @@ async function smoke(window, origin, token) {
     const chatLabels = [...chatProvider.options].filter((o) => o.value).map((o) => o.textContent);
     chatProvider.value = "xai";
     chatProvider.dispatchEvent(new Event("change"));
-    await wait(800);
     const dialog = document.getElementById("key-dialog");
-    const asked = dialog.open ? document.getElementById("key-title").textContent : "(no dialog)";
+    const grokSelect = document.getElementById("chat-model");
+    for (let i = 0; i < 60 && !dialog.open && grokSelect.hidden; i++) await wait(300);
+    // Without a Grok key the key dialog opens; with one, its models are listed
+    const asked = dialog.open ? document.getElementById("key-title").textContent
+      : (!grokSelect.hidden && grokSelect.options.length > 1 ? "listed Grok models" : "(nothing happened)");
     document.getElementById("key-cancel").click();
     // A provider whose key works must list only its own models
     chatProvider.value = "google_genai";
     chatProvider.dispatchEvent(new Event("change"));
     const chatModel = document.getElementById("chat-model");
-    while (chatModel.hidden && Date.now() - started < 70000) await wait(300);
-    const chat = { chatLabels, asked, googleModels: chatModel.options.length - 1, first: chatModel.options[1] ? chatModel.options[1].textContent : "" };
+    // With a saved Google key its models appear; on a fresh install the key dialog opens instead
+    while (chatModel.hidden && !dialog.open && Date.now() - started < 70000) await wait(300);
+    const googleAsked = dialog.open ? document.getElementById("key-title").textContent : "";
+    if (dialog.open) document.getElementById("key-cancel").click();
+    const chat = { chatLabels, asked, googleAsked, googleModels: chatModel.hidden ? 0 : chatModel.options.length - 1,
+                   first: chatModel.options[1] ? chatModel.options[1].textContent : "" };
     return JSON.stringify({ chat, modelsNav: Boolean(document.querySelector('[data-view="models"]')) });
   })()`);
   const picker = JSON.parse(loaded);
-  const chatOk = picker.chat.chatLabels.join() === "OpenAI,Google,Claude,Grok" && /Grok API key/.test(picker.chat.asked) && picker.chat.googleModels > 0;
+  const chatOk = picker.chat.chatLabels.join() === "OpenAI,Google,Claude,Grok" && /Grok API key|listed Grok models/.test(picker.chat.asked)
+    && (picker.chat.googleModels > 0 || /Google API key/.test(picker.chat.googleAsked));
   if (!chatOk || picker.modelsNav) {
     console.log(`SMOKE FAIL models: ${loaded}`); quitting = true; stopRuntime(); app.exit(1); return;
   }
@@ -287,7 +295,13 @@ async function smoke(window, origin, token) {
     document.getElementById("auto-task").value = "Find today's top AI news and summarise it in five lines";
     const provider = document.getElementById("auto-provider");
     provider.value = "google_genai"; provider.dispatchEvent(new Event("change"));
-    for (let i = 0; i < 100 && document.getElementById("auto-model-field").hidden; i++) await wait(300);
+    const keyDialog = document.getElementById("key-dialog");
+    for (let i = 0; i < 100 && document.getElementById("auto-model-field").hidden && !keyDialog.open; i++) await wait(300);
+    if (keyDialog.open) {  // fresh install: no Google key yet, so it asks for one (correct behaviour)
+      const title = document.getElementById("key-title").textContent;
+      document.getElementById("key-cancel").click();
+      return /Google API key/.test(title) ? 1 : -1;
+    }
     const select = document.getElementById("auto-model");
     if (select.options.length > 1) select.selectedIndex = 1;
     return select.options.length - 1;

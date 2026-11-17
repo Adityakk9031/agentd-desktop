@@ -45,3 +45,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+
+  windows-installer:
+    # Builds the one-file Windows installer (bundled runtime, no Python needed) and adds it to the release
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build the bundled runtime
+        run: python desktop/build_runtime.py
+
+      - name: Build the installer
+        working-directory: desktop
+        run: |
+          npm ci --no-audit --no-fund
+          npx electron-builder --win nsis --publish never
+
+      - name: Add the installer to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release upload "$GITHUB_REF_NAME" desktop/dist/*.exe
