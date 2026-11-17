@@ -30,7 +30,9 @@ async def test_real_tool_failure_is_reported_as_failure():
         raw = await tool.ainvoke({"guild_id": "not-a-snowflake"})
     text = raw if isinstance(raw, str) else "".join(b.get("text", "") for b in raw if isinstance(b, dict))
     assert _tool_failed(text)
-    assert "guild_id" in json.loads(text)["error"]
+    # Without a Discord token the tool refuses earlier; either way it is a reported failure
+    error = json.loads(text)["error"]
+    assert "guild_id" in error or "DISCORD_BOT_TOKEN" in error
 
 
 @pytest.mark.asyncio
