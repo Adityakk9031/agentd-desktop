@@ -742,8 +742,10 @@ as local storage.
 4. **First release.** No version has been published, so the update popup has
    nothing to offer yet.
 5. **Keys in the OS keychain** instead of `.env` and the vault key file.
-6. **Mouse-and-keyboard control** of other desktop apps (only files, commands
-   and the browser today).
+6. ~~Mouse-and-keyboard control of other desktop apps~~: **done on Windows
+   (2026-11-17)** through UI Automation (see desktop.py); macOS and Linux
+   still to do. Vision-only control for apps with no accessible controls
+   (Agent-S / UI-TARS style grounding models) is a later step.
 7. **Resume after a restart.** A task stopped by closing the app is lost;
    needs a LangGraph checkpointer.
 8. **Searchable memory** (Phase 4): the agent's notes are one file today.
@@ -761,3 +763,12 @@ Multiple named bots with their own instructions and model; signing in with
 an existing ChatGPT / Claude subscription instead of API keys; event triggers
 for automations (new email, GitHub issue); a phone-friendly way to reach the
 app from outside the computer; encrypted backup of settings and data.
+
+### Reviewed 2026-11-17 (licences all MIT or Apache-2.0; LiteLLM mixed)
+Taken now: Windows desktop control (Operator-Use / UFO design, uiautomation).
+Already covered by our own code: provider choice + key setup (Operator-Use,
+Goose), approval modes (Goose), MCP tools (Goose), browser agent
+(browser-use; we do not solve CAPTCHAs), clean agent loop (Open Interpreter).
+Later: LiteLLM as an optional provider for 100+ models; Docker sandbox for
+commands (OpenHands, cua); vision grounding for apps without controls
+(Agent-S, UI-TARS); multi-agent workforce ideas (Eigent).

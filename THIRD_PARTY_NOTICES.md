@@ -1,5 +1,15 @@
 # Third-party notices
 
+## Desktop control
+
+agentd/computer/desktop.py follows the design of Operator-Use
+(https://github.com/CursorTouch/Operator-Use, MIT License) and Microsoft UFO
+(https://github.com/microsoft/UFO, MIT License): the active window shown as a
+list of interactive controls with refs, and the control types worth showing.
+No code was copied from them. The work is done by the uiautomation package
+(https://github.com/yinkaisheng/Python-UIAutomation-for-Windows, Apache License
+2.0), installed as a dependency.
+
 ## OpenClaw
 
 Parts of agentd's design follow OpenClaw (https://github.com/openclaw/openclaw),
