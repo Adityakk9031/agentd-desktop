@@ -186,4 +186,4 @@ Parts of the design follow [OpenClaw](https://github.com/openclaw/openclaw) (MIT
 
 ## License
 
-Apache-2.0, as declared in `pyproject.toml`.
+[Apache License 2.0](LICENSE).
