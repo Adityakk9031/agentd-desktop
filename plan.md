@@ -711,3 +711,53 @@ other; cron schedules and app-event triggers; encrypted backups.
 prompt templates, `scratch/`, `demo.sh` and the stale `manifest.json`.
 Memory is now the agent's own notes file; vector memory returns in Phase 4
 as local storage.
+
+## 14. Status (2026-11-17)
+
+### Built and tested
+- Desktop app (Electron, Windows): chat, Agents (team) mode, Automations,
+  Approvals, Website passwords, Tools, model picker with effort level,
+  formatted answers, in-app update popup.
+- Agent: works in a loop with files, commands, web search, web pages and a
+  real browser; asks before changing anything; loop guard; skills; memory
+  with secrets scrubbed; follow-up messages keep context.
+- Safety in code: protected files and system folders, blocked destructive
+  commands, never types passwords or card details, always asks before
+  paying, local addresses blocked, login vault, audit log, localhost +
+  random token.
+- Models: OpenAI, Google, Claude, Grok (+ OpenRouter, Groq, DeepSeek,
+  Mistral, Ollama), fallback chain, effort levels.
+- Connections: built-in tools, your own MCP servers, Telegram / Discord /
+  Slack with approval buttons.
+- Releases: tag-triggered GitHub workflow; in-app updates from releases.
+- Tests: 195 automated (183 without a browser installed) and an end-to-end
+  check that drives the real app with a real model (`npm run e2e`).
+
+### Not done yet
+1. **One-file installer.** The app still needs Python and this folder on the
+   machine. Bundle the runtime (PyInstaller) into the Electron installer.
+2. **macOS build.** Code is cross-platform; never built or run on a Mac.
+3. **Code signing** (Apple Developer account, Windows certificate), so
+   installers are trusted.
+4. **First release.** No version has been published, so the update popup has
+   nothing to offer yet.
+5. **Keys in the OS keychain** instead of `.env` and the vault key file.
+6. **Mouse-and-keyboard control** of other desktop apps (only files, commands
+   and the browser today).
+7. **Resume after a restart.** A task stopped by closing the app is lost;
+   needs a LangGraph checkpointer.
+8. **Searchable memory** (Phase 4): the agent's notes are one file today.
+9. **Browser for agent teams**: parallel agents would share one window, so
+   team agents have no browser yet.
+10. **Effort level for automations** (they use the default).
+11. **Not yet tried for real:** a full shopping task on a live shop, a real
+    Telegram / Discord / Slack message driving the agent, connecting a real
+    third-party MCP server through the app, a saved login on a real site.
+12. **Context file** `context.md` in the old folder is outdated (old folder
+    only).
+
+### Worth adding later
+Multiple named bots with their own instructions and model; signing in with
+an existing ChatGPT / Claude subscription instead of API keys; event triggers
+for automations (new email, GitHub issue); a phone-friendly way to reach the
+app from outside the computer; encrypted backup of settings and data.

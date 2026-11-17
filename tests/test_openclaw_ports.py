@@ -200,7 +200,7 @@ async def test_a_real_user_server_loads_and_only_its_read_tool_runs_without_aski
 
 # ------------------------------------------------------- browser snapshot
 
-pytest.importorskip("playwright")
+# The browser tests below skip themselves when Playwright is missing; the rest always run.
 from agentd.computer import browser  # noqa: E402
 
 PAGE = """<html><body><h1>Shop</h1>
@@ -213,6 +213,7 @@ PAGE = """<html><body><h1>Shop</h1>
 
 @pytest_asyncio.fixture
 async def page(tmp_path, monkeypatch):
+    pytest.importorskip("playwright")
     monkeypatch.setenv("AGENTD_BROWSER_PROFILE", str(tmp_path / "profile"))
     monkeypatch.setenv("AGENTD_BROWSER_HEADLESS", "1")
     try:

@@ -59,7 +59,7 @@ def test_redact_hides_saved_passwords():
 
 # ------------------------------------------------------- browser sign-in
 
-pytest.importorskip("playwright")
+# The browser tests below skip themselves when Playwright is missing; the rest always run.
 from agentd.computer import browser  # noqa: E402
 from agentd.safety.gate import ActionGate  # noqa: E402
 
@@ -70,6 +70,7 @@ LOGIN_PAGE = """<html><head><title>Sign in</title></head><body>
 
 @pytest_asyncio.fixture
 async def page(tmp_path, monkeypatch):
+    pytest.importorskip("playwright")
     monkeypatch.setenv("AGENTD_BROWSER_PROFILE", str(tmp_path / "profile"))
     monkeypatch.setenv("AGENTD_BROWSER_HEADLESS", "1")
     try:

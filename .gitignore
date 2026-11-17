@@ -63,3 +63,6 @@ desktop/out/
 # Local runtime config
 agentd.yaml
 *.egg-info/
+
+# Local editor and assistant settings
+.claude/
