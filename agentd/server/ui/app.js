@@ -272,7 +272,7 @@ function teamBoard() {
         entry.row.className = "agent " + (agent.success ? "done" : "failed");
         setTools(agent.id, agent.tools_used);
         entry.extra.replaceChildren(agent.success
-          ? el("details", {}, el("summary", {}, "Report"), el("div", { class: "report step" }, agent.output))
+          ? el("details", {}, el("summary", {}, "Report"), el("div", { class: "report" }, renderMarkdown(agent.output)))
           : el("div", { class: "err" }, agent.error || "Failed"));
       }
       const failed = agents.filter((a) => !a.success).length;
@@ -336,6 +336,17 @@ function actionList(actions) {
     el("span", { class: "mark" }), el("span", { class: "text" }, a.summary)));
 }
 
+function copyButton(text) {
+  // Copies the answer as written (Markdown), like other chat apps
+  const button = el("button", { class: "copy-answer", type: "button", title: "Copy answer" }, "Copy");
+  button.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); button.textContent = "Copied"; }
+    catch { button.textContent = "Could not copy"; }
+    setTimeout(() => { button.textContent = "Copy"; }, 1500);
+  });
+  return button;
+}
+
 function renderResult(result) {
   const verification = result.verification || {};
   const summary = (verification.final_output || {}).summary;
@@ -349,7 +360,7 @@ function renderResult(result) {
     board.showFinal(result.agents);
     parts.push(board.node);
   }
-  parts.push(el("div", { class: "body" }, text));
+  parts.push(el("div", { class: "body answer" }, renderMarkdown(text), copyButton(text)));
   parts.push(el("div", { class: "meta" },
     pill(`${source} ${percent(verification.confidence)}`, result.needs_review ? "warn" : "ok"),
     issues.length ? pill(`${issues.length} issue${issues.length > 1 ? "s" : ""}`, "fail") : null,

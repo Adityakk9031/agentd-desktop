@@ -113,6 +113,15 @@ API_TOKEN = os.getenv("AGENTD_API_TOKEN", "")
 
 
 @app.middleware("http")
+async def fresh_screens(request: Request, call_next):
+    """The app's screens are re-checked on every load, so an update is never hidden by a cached old file."""
+    response = await call_next(request)
+    if request.url.path.startswith("/app"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@app.middleware("http")
 async def require_api_token(request: Request, call_next):
     if API_TOKEN and request.url.path.startswith("/api/") and request.method != "OPTIONS":
         supplied = request.headers.get("authorization", "")

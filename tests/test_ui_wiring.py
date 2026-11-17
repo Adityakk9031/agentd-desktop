@@ -60,3 +60,23 @@ def test_page_loads_only_local_files():
 
 def test_stylesheet_is_balanced():
     assert CSS.count("{") == CSS.count("}")
+
+
+def test_markdown_renderer_never_inserts_raw_html():
+    md = (UI / "markdown.js").read_text(encoding="utf-8")
+    code = "\n".join(line for line in md.splitlines() if not line.strip().startswith("//"))
+    for unsafe in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "new Function"):
+        assert unsafe not in code, unsafe
+    assert 'SAFE_LINK = /^(https?:\/\/|mailto:)/i' in md  # only web and mail links become links
+    html = (UI / "index.html").read_text(encoding="utf-8")
+    assert html.index('src="markdown.js"') < html.index('src="app.js"')
+
+
+def test_board_styles_do_not_leak_onto_chat_messages():
+    """Team-board rows once shared the .agent class with every agent message and squeezed answers to 18px."""
+    for line in CSS.splitlines():
+        rule = line.split("{")[0]
+        for selector in rule.split(","):
+            selector = selector.strip()
+            if re.match(r"^\.agent\b", selector):
+                raise AssertionError(f"unscoped .agent rule: {selector}")
