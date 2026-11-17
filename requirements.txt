@@ -1,0 +1,3 @@
+# Installs agentd from this checkout with every optional extra.
+# Prefer: pip install -e ".[channels,dev]"
+-e .[channels,dev]

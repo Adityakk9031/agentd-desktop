@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentd-desktop"  # PyPI name; the Python package is still imported as `agentd`
+dynamic = ["version"]
+description = "Open-source agent runtime: bring your own model, connect any MCP tool, approve risky actions."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.29.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.9.0",
+    "python-dotenv>=1.0.0",
+    "tenacity>=8.2.0",
+    "pyyaml>=6.0",
+    "langchain>=1.0",
+    "langchain-core>=1.0",
+    "langgraph>=1.0",
+    "mcp>=1.0.0",
+    "langchain-mcp-adapters>=0.1.0",
+]
+
+[project.optional-dependencies]
+# Model providers: install the ones you use (see `agentd doctor`)
+openai = ["langchain-openai>=1.0"]
+anthropic = ["langchain-anthropic>=1.0"]
+google = ["langchain-google-genai>=4.0"]
+ollama = ["langchain-ollama>=1.0"]
+xai = ["langchain-xai>=1.0"]
+browser = ["playwright>=1.40"]
+models = ["langchain-openai>=1.0", "langchain-anthropic>=1.0", "langchain-google-genai>=4.0", "langchain-ollama>=1.0", "langchain-xai>=1.0"]
+discord = ["discord.py>=2.3.0"]
+slack = ["slack-sdk>=3.26.0"]
+channels = ["discord.py>=2.3.0", "slack-sdk>=3.26.0"]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.23.0"]
+
+[project.scripts]
+agentd = "agentd.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "agentd.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["agentd*"]
+
+[tool.setuptools.package-data]
+"agentd.server" = ["ui/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
