@@ -1,369 +1,189 @@
-# 🤖 AI Operations Assistant
+# agentd
 
-> A **production-ready, multi-agent AI system** that autonomously plans, executes, verifies, and **remembers** complex tasks — powered by **Gemini 3.5 Flash**, **LangGraph**, **Model Context Protocol (MCP)**, **Pinecone Vector DB**, and real-world APIs.
+**An open-source AI agent for your own computer.** Bring your own model and key. Give it a task in plain words, and it works on your files, runs commands, uses the web and a real browser, and connects to your other tools. It asks before it changes anything.
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776ab?logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![LangGraph](https://img.shields.io/badge/LangGraph-StateGraph-ff6b35?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-[![MCP](https://img.shields.io/badge/MCP-FastMCP-7000FF?logo=protocol&logoColor=white)](https://modelcontextprotocol.io)
-[![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20DB-12B76A?logo=pinecone&logoColor=white)](https://pinecone.io)
-[![Gemini](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4?logo=google&logoColor=white)](https://aistudio.google.com)
-[![License](https://img.shields.io/badge/License-MIT-a855f7)](LICENSE)
+Runs on Windows and macOS (desktop app) or anywhere Python runs (command line and local API). No account, no subscription to us: you pay only your AI provider, and everything stays on your computer.
+
+> Early version (0.1). Expect rough edges.
 
 ---
 
-## 📸 Screenshots
+## What it can do
 
-### API Response – Weather Task
-<img width="613" height="617" alt="Screenshot 2026-08-14 164927" src="https://github.com/user-attachments/assets/450421b6-b58f-4005-9513-476d3d539d09" />
+| | |
+| --- | --- |
+| **Work on your computer** | List, read, search, create and edit files; run commands; open files and apps. |
+| **Use the web** | Search the web, read pages, and drive a real browser window you can watch: click, fill in forms, pick sizes, add to a basket. |
+| **Ask before acting** | Writing a file, running a command or signing in pauses on a card with **Allow once / Allow for this task / Deny**. Switch to **Full access** when you trust the task, even mid-task. |
+| **Never pay or type secrets on its own** | Buttons that pay or place an order always ask, in every mode. It never types passwords, card numbers or one-time codes; it hands those to you. |
+| **Sign in without seeing passwords** | Save a website's login once under **Website passwords**. The agent can sign in with it but never sees it, and only on that website. Optional. |
+| **Work as a team** | **Agents** mode: a supervisor splits the task, several agents work at the same time, and a lead writes the answer. You watch each one live. |
+| **Run on a schedule** | **Automations** run a task every day, on weekdays, or every few minutes or hours, with one agent or a team. |
+| **Connect your tools** | Add any [MCP](https://modelcontextprotocol.io) server (a program or a web address) on the **Tools** page. Built in: GitHub, weather, news, Discord and Slack reading. |
+| **Follow instructions you write** | **Skills** are instruction files (`SKILL.md`) the agent loads when a task fits. Included: online shopping and web research. |
+| **Answer from your chats** | Message it from **Telegram, Discord or Slack**. Its questions arrive as Approve / Reject buttons. |
+| **Remember you** | It keeps short notes about you and your preferences. Anything that looks like a password or key is never saved. |
 
+## Models
 
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Weather Task Response](screenshots/weather_response.png) -->
+Pick a provider in the chat box, paste your API key, and choose from that provider's current models. Each run can use an **effort** level (low, medium, high) to trade speed and cost against quality.
 
----
+| Provider | Key |
+| --- | --- |
+| OpenAI | `OPENAI_API_KEY` |
+| Google (Gemini) | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` |
+| xAI (Grok) | `XAI_API_KEY` |
+| Also supported | OpenRouter, Groq, DeepSeek, Mistral, Ollama (local, free) |
 
-### LangGraph & MCP Server Logs
-<img width="605" height="762" alt="Screenshot 2026-08-14 165053" src="https://github.com/user-attachments/assets/97592308-635f-401b-b623-af2db76a44ad" />
+If a model fails (out of credit, bad key, provider down), the next one in your list takes over.
 
+## Install
 
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Server Logs](screenshots/server_logs.png) -->
-
----
-
-### Pinecone Dashboard – Vector Records Saved
-<img width="1801" height="790" alt="image" src="https://github.com/user-attachments/assets/efef3c88-9054-41a8-a2e0-47af23d1e639" />
-
-
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Pinecone Dashboard](screenshots/pinecone_dashboard.png) -->
-
----
-
-### Swagger UI – Interactive API Docs
-<img width="1760" height="1500" alt="image" src="https://github.com/user-attachments/assets/be64b420-7be1-4860-9e63-3a7a8fc293df" />
-
-
-<!-- SCREENSHOT PLACEHOLDER -->
-<!-- ![Swagger UI](screenshots/swagger_ui.png) -->
-
----
-
-## 🎯 What This System Does
-
-Given a **plain English task** like:
-> *"Check the weather in London and format it as a JSON summary"*
-
-The AI Operations Assistant:
-
-1. **🧠 Recalls past memory** — Queries Pinecone for similar tasks already solved before
-2. **🔌 Connects to MCP Server** — Establishes stdio session with `mcp_server.py` via `langchain-mcp-adapters`
-3. **📋 Plans intelligently** — Gemini 3.5 Flash breaks the task into structured, typed steps using 7 registered MCP tools
-4. **⚡ Executes autonomously** — Runs MCP tool calls (GitHub, OpenWeatherMap, NewsAPI) over stdio transport with retry logic
-5. **✅ Self-verifies** — Validates outputs against expected schemas, catches errors
-6. **💾 Saves to memory** — Stores successful plans as 768-dim vectors in Pinecone for future recall
-
----
-
-## 🏗️ Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    FastAPI Server (:8000)                    │
-│                     POST /api/submit                        │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│              LangGraph StateGraph Workflow                   │
-│                                                             │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐              │
-│  │  Memory  │───▶│ Planner  │───▶│ Executor │              │
-│  │  Node    │    │  Node    │    │  Node    │              │
-│  └──────────┘    └────┬─────┘    └────┬─────┘              │
-│       ▲               │               │                     │
-│       │               └───────┬───────┘                     │
-│       │           load_mcp_tools()                          │
-│  ┌──────────┐                 ▼                             │
-│  │  Save    │    ┌─────────────────────────┐                │
-│  │  Memory  │◀───│   MCP ClientSession     │                │
-│  └──────────┘    └────────────┬────────────┘                │
-│                               │ stdio transport             │
-│                               ▼                             │
-│                  ┌─────────────────────────┐                │
-│                  │  FastMCP Server         │                │
-│                  │  (mcp_server.py)        │                │
-│                  │  7 Registered Tools     │                │
-│                  └─────────────────────────┘                │
-│                               │                             │
-│                               ▼                             │
-│                      ┌─────────────────┐                    │
-│                      │  Verifier Node  │                    │
-│                      └─────────────────┘                    │
-└─────────────────────────────────────────────────────────────┘
-
-Pinecone Vector DB ──── embeddings ──── Google gemini-embedding-001
-```
-
----
-
-## 🔌 Model Context Protocol (MCP) Integration
-
-This project uses the **Model Context Protocol (MCP)** to expose modular API tools over standard input/output (`stdio`) transport via `mcp_server.py`.
-
-### Registered MCP Tools (7 Tools Total)
-
-| Category | Tool Name | Description |
-|:---|:---|:---|
-| 🐙 **GitHub** | `github_search_repos` | Search GitHub repositories matching a query string |
-| 🐙 **GitHub** | `github_get_repo` | Get detailed information for a specific GitHub repository |
-| 🐙 **GitHub** | `github_get_repos_batch` | Get details for multiple GitHub repositories at once |
-| 🌤️ **Weather** | `weather_current` | Get current weather conditions for a specified city |
-| 🌤️ **Weather** | `weather_forecast` | Get multi-day weather forecast for a specified city |
-| 📰 **News** | `news_search` | Search news articles matching keyword queries |
-| 📰 **News** | `news_top_headlines` | Get top headlines by category or country |
-
-Tools are initialized via `FastMCP` and dynamically loaded into the LangGraph workflow using **`langchain-mcp-adapters`**:
-
-```python
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-from langchain_mcp_adapters.tools import load_mcp_tools
-
-server_params = StdioServerParameters(command="python", args=["mcp_server.py"])
-
-async with stdio_client(server_params) as (read, write):
-    async with ClientSession(read, write) as session:
-        await session.initialize()
-        mcp_tools = await load_mcp_tools(session)
-```
-
----
-
-## 📁 Project Structure
-
-```
-ai_ops_assistant/
-│
-├── main.py                    # FastAPI server entry point
-├── mcp_server.py              # FastMCP Server exposing 7 MCP tools over stdio
-├── requirements.txt           # All Python dependencies
-├── .env                       # Your secret API keys (never commit!)
-├── .env.example               # Template for .env
-├── manifest.json              # Tool registry & system config
-│
-├── agents/                    # The "Brains"
-│   ├── planner.py             # Decomposes tasks into typed step plans via MCP tools
-│   ├── executor.py            # Executes steps via MCP tool adapters with retries
-│   └── verifier.py            # Validates outputs against expected schemas
-│
-├── workflow/
-│   └── graph.py               # LangGraph StateGraph definition
-│                              # (Memory→Planner→Executor→Verifier→SaveMemory)
-│
-├── llm/
-│   ├── gemini_client.py       # Gemini 3.5 Flash wrapper (JSON generation)
-│   └── prompts/               # Strictly typed JSON prompt templates
-│       ├── planner_prompt.py
-│       └── verifier_prompt.py
-│
-├── memory/
-│   └── vector_store.py        # Pinecone + gemini-embedding-001 (768-dim)
-│                              # save_successful_task / search_similar_tasks
-│
-├── tools/                     # The "Hands"
-│   ├── base_tool.py           # Abstract ToolInterface + ToolResponse
-│   ├── github_tool.py         # GitHub REST API implementation
-│   ├── weather_tool.py        # OpenWeatherMap API implementation
-│   ├── news_tool.py           # NewsAPI implementation
-│   └── langchain_tools.py     # Dynamic MCP tool loader utilities
-│
-├── services/
-│   └── workflow_service.py    # Bridges FastAPI request to LangGraph
-│
-└── tests/
-    └── test_integration.py    # Integration test suite
-```
-
----
-
-## ⚙️ Tech Stack
-
-| Layer | Technology |
-|:---|:---|
-| **LLM** | Google Gemini 3.5 Flash (`models/gemini-3.5-flash`) |
-| **Tool Protocol** | Model Context Protocol (MCP via `FastMCP`) |
-| **MCP Adapters** | `langchain-mcp-adapters` over stdio transport |
-| **Embeddings** | Google `models/gemini-embedding-001` (768-dim) |
-| **Orchestration** | LangGraph StateGraph (conditional edges, cyclic retry) |
-| **Vector Memory** | Pinecone Serverless Index |
-| **API Framework** | FastAPI + Uvicorn |
-| **Real-World APIs** | OpenWeatherMap · GitHub REST · NewsAPI |
-| **Runtime** | Python 3.10+ |
-
----
-
-## 🛠️ Step-by-Step Setup Guide
-
-### 1. Prerequisites
-
-Make sure you have **Python 3.10+** installed:
-```bash
-python --version
-```
-
-### 2. Clone & Install
+You need **Python 3.11+**. For the desktop app you also need **Node.js 20+**.
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd ai_ops_assistant
-
-# Create and activate a virtual environment
-python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install all dependencies (including mcp & langchain-mcp-adapters)
-pip install -r requirements.txt
+git clone https://github.com/Adityakk9031/agentd-desktop
 ```
 
-### 3. Configure API Keys
-
-Copy the template and fill in your keys:
 ```bash
-cp .env.example .env
+cd agentd-desktop
 ```
 
-Open `.env` and set the following:
-
-```env
-GEMINI_API_KEY=AIzaSy...
-GITHUB_TOKEN=ghp_...
-OPENWEATHER_KEY=...
-NEWSAPI_KEY=...
-PINECONE_API_KEY=...
-PINECONE_INDEX_NAME=ai-ops-memory
-```
-
-#### 🔑 Where to Get Each Key
-
-| Key | Cost | Link | Steps |
-|:---|:---|:---|:---|
-| `GEMINI_API_KEY` | **Free** | [Google AI Studio](https://aistudio.google.com/app/apikey) | Sign in → "Get API Key" → Copy |
-| `GITHUB_TOKEN` | **Free** | [GitHub Settings](https://github.com/settings/tokens) | "Generate new token (classic)" → select `public_repo` |
-| `OPENWEATHER_KEY` | **Free** | [OpenWeatherMap](https://home.openweathermap.org/users/sign_up) | Sign up → Verify email → [API Keys](https://home.openweathermap.org/api_keys) |
-| `NEWSAPI_KEY` | **Free** | [NewsAPI](https://newsapi.org/register) | Register → Copy key from dashboard |
-| `PINECONE_API_KEY` | **Free** | [Pinecone Console](https://app.pinecone.io) | Create account → Create index (dimension: **768**) → Copy API key |
-
----
-
-## ▶️ Running the Application
-
-Start the server:
 ```bash
-python main.py
+pip install -e ".[models,browser,channels]"
 ```
 
-Expected startup output:
-```text
-INFO:memory.vector_store:Successfully connected to Pinecone index 'ai-ops-memory'
-INFO:workflow.graph:Successfully compiled LangGraph StateGraph workflow with MCP tool support
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-```
+The browser features use Playwright. If you have Edge or Chrome installed, agentd uses it. Otherwise install Playwright's own browser:
 
-**Interactive API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## 🧪 Usage & Examples
-
-### Example 1: Weather Check (via MCP)
 ```bash
-curl -X POST http://localhost:8000/api/submit \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Check the weather in London and format it as a JSON summary"}'
+playwright install chromium
 ```
 
-**Expected server log flow:**
-```text
-[LangGraph: Memory Node]    Querying Pinecone for past memory...
-[LangGraph: Planner Node]   Creating plan for task...
-[MCP Session]               Successfully loaded 7 tools via load_mcp_tools()
-[LangGraph: Executor Node]  Executing step via MCP Tool: 'weather_current' ✅
-[LangGraph: Verifier Node]  Confidence: 1.0, Issues: 0 → Routing to SaveMemory
-[LangGraph: SaveMemory Node] Upserted to Pinecone ✅ {'upserted_count': 1}
-```
+### Desktop app
 
----
-
-### Example 2: GitHub Search (via MCP)
 ```bash
-curl -X POST http://localhost:8000/api/submit \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Find the top 3 Python web frameworks on GitHub by stars"}'
+cd desktop
 ```
 
----
-
-### Example 3: News Headlines (via MCP)
 ```bash
-curl -X POST http://localhost:8000/api/submit \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Find the top 3 AI news headlines from the US today"}'
+npm install
 ```
 
----
-
-### Example 4: Memory Recall Test
-Run a task **twice**. On the second run, watch the logs — the system will retrieve the previously saved plan from Pinecone vector memory:
 ```bash
-# First run — saves vector to Pinecone
-curl -X POST http://localhost:8000/api/submit \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Get current weather in Tokyo"}'
-
-# Second run — recalls vector memory from Pinecone
-curl -X POST http://localhost:8000/api/submit \
-  -H "Content-Type: application/json" \
-  -d '{"task": "What is the weather like in Tokyo?"}'
+npm start
 ```
 
----
+The app starts the agent in the background on your computer, on a random local port with a random access token, and stops it when you close the window.
 
-## 🔄 LangGraph & MCP Workflow Detail
+### Command line
 
-| Node | Role | Description |
-|:---|:---|:---|
-| `memory_node` | **Recall** | Embeds task and queries Pinecone for similar past task memories |
-| `planner_node` | **Plan** | Loads 7 tools via `load_mcp_tools()` and creates structured step plans with Gemini 3.5 |
-| `executor_node` | **Act** | Calls FastMCP server tools over stdio transport with exponential retries |
-| `verifier_node` | **Verify** | Validates results against expected schema; routes on failure |
-| `save_memory_node` | **Remember** | Saves successful plan + verification as a 768-dim vector to Pinecone |
+```bash
+python -m agentd doctor --ping
+```
 
----
+```bash
+python -m agentd chat "Make a notes.txt on my Desktop with today's date"
+```
 
-## ❓ Troubleshooting
+```bash
+python -m agentd chat --team "Compare the top 3 Python web frameworks on GitHub"
+```
 
-**Q: `Cannot find module langchain_mcp_adapters`**
-> A: Run `pip install -r requirements.txt` to install `langchain-mcp-adapters` and `mcp`.
+Add `--yes` to let it act without asking. Paying and handing steps to you still always need a person.
 
-**Q: `429 Quota Exceeded` from Gemini API**
-> A: You hit Google's free tier rate limit (20 requests per minute). Simply wait 10-15 seconds before running the next request.
+Other commands: `init` (write a starter `agentd.yaml`), `serve` (run the local API and the screens at `http://127.0.0.1:8000/app/`), `mcp` (run the built-in tools as an MCP server), `version`.
 
-**Q: Pinecone dimension mismatch**
-> A: Your Pinecone index must be created with **dimension = 768** to match `models/gemini-embedding-001`.
+## Settings
 
----
+Put keys in a `.env` file in the folder you run agentd from (see [`.env.example`](.env.example)), or enter them in the app. Useful settings:
 
-## 📄 License
+| Setting | What it does |
+| --- | --- |
+| `AGENTD_MODEL_DEFAULT` | Default model, for example `xai:grok-4.6` or `openai:gpt-5.4` |
+| `AGENTD_MODEL_DEFAULT_FALLBACKS` | Models to try next, comma-separated |
+| `AGENTD_EFFORT` | Default effort: `low`, `medium` or `high` |
+| `AGENTD_WORKSPACE` | Where relative paths start (default: your home folder) |
+| `PERMISSION_ALLOW` / `PERMISSION_ASK` / `PERMISSION_DENY` | Tool rules, as name patterns like `github_*` |
+| `TELEGRAM_BOT_TOKEN`, `DISCORD_BOT_TOKEN`, `SLACK_APP_TOKEN` | Turn on chat channels |
 
-This project is licensed under the **MIT License**.
+For per-role models (planner, worker, verifier) use `agentd.yaml`; run `python -m agentd init` for a commented example.
 
----
+## Safety
 
+The rules below are enforced in code, outside the model, so the AI cannot forget or talk its way past them.
 
+- **Local only.** The server listens on `127.0.0.1`. The desktop app adds a random token so other programs on your computer cannot drive it.
+- **Ask before changing anything** (unless you choose Full access): files, commands, opening things, signing in, and tools that write.
+- **Always ask** for anything that pays, orders or subscribes, for that one click only.
+- **Off limits in every mode:**
+  - files that hold keys and passwords (`.env`, `.ssh`, browser password stores)
+  - system folders
+  - destructive commands (formatting drives, deleting your home folder, changing user accounts or security settings)
+  - pages on your computer or local network
+- **Nothing it reads can give it orders.** Web pages, files and messages are treated as information.
+- **Unattended automations** may read and look things up, but anything that would change your computer is declined and reported.
+- **Audit log** of what it did, in `data/audit.db`.
+
+These are guard rails, not a sandbox: a command you approve runs with your own rights.
+
+## Your data
+
+Everything stays in the `data/` folder where agentd runs:
+- approvals and automations (SQLite)
+- the audit log
+- the agent's notes about you
+- saved website logins (encrypted)
+- the browser profile
+- your MCP connections
+
+What you ask goes straight from your computer to the AI provider you chose. Web searches go to DuckDuckGo.
+
+## Updates
+
+The app checks this repository's GitHub releases. When a newer version is out, it shows the release notes with **Update now**, installs it and restarts. Nothing is downloaded until you press the button. Running from a clone? Update with `git pull`.
+
+To publish a release: set `__version__` in `agentd/__init__.py`, then push a matching tag (for example `v0.2.0`). The release workflow runs the tests, builds the package and creates the GitHub release.
+
+## Development
+
+```bash
+pip install -e ".[dev,models,browser,channels]"
+```
+
+```bash
+python -m pytest
+```
+
+```bash
+cd desktop && npm run e2e
+```
+
+`npm run e2e` drives the real app with your configured model: chat, an approval card, stopping a task, an agent team, an automation and the Tools page.
+
+Layout:
+
+```
+agentd/
+  runtime/    the agent loop, agent teams, skills
+  computer/   file, command, web and browser tools, hard safety rules
+  safety/     approval gate, permissions, login vault, audit log
+  models/     model choice, providers, fallbacks, effort
+  tools/      built-in MCP server and tools, your MCP connections
+  channels/   Telegram, Discord, Slack
+  services/   automations, task runner, approval queue
+  server/     local API and the app's screens (ui/)
+  skills/     bundled SKILL.md files
+desktop/      Electron app
+tests/
+```
+
+See [`plan.md`](plan.md) for where the project is going.
+
+## Credits
+
+Parts of the design follow [OpenClaw](https://github.com/openclaw/openclaw) (MIT): the browser snapshot view, skills, MCP connections and the loop guard. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+## License
+
+Apache-2.0, as declared in `pyproject.toml`.
