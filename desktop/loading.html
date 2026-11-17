@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <title>agentd</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #1b1b1a; color: #ecebe8; }
+    @media (prefers-color-scheme: light) { body { background: #fff; color: #1c1b19; } }
+    h1 { font-size: 22px; margin: 0; }
+    p { margin: 0; opacity: .7; max-width: 520px; text-align: center; white-space: pre-wrap; }
+    pre { max-width: 80%; max-height: 40%; overflow: auto; font-size: 12px; opacity: .8; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>agentd</h1>
+  <p id="message">Starting the agent…</p>
+  <pre id="detail"></pre>
+</body>
+</html>

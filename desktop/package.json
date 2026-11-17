@@ -1,0 +1,32 @@
+{
+  "name": "agentd-desktop",
+  "productName": "agentd",
+  "version": "0.1.0",
+  "description": "Desktop app for agentd, the open-source agent runtime.",
+  "license": "Apache-2.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "e2e": "electron . --e2e",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "dev.agentd.desktop",
+    "productName": "agentd",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "loading.html", "package.json"],
+    "extraResources": [
+      { "from": "runtime", "to": "runtime", "filter": ["**/*"] }
+    ],
+    "win": { "target": ["nsis"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "mac": { "target": ["dmg"], "category": "public.app-category.productivity" }
+  }
+}
