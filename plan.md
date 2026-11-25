@@ -875,4 +875,4 @@ Still not in version 1:
 - Not tried for real yet: a full purchase on a live shop, Telegram / Discord /
   Slack driving the agent, a third-party MCP server added in the app, a saved
   login on a real site. See docs/v1-test-checklist.md.
-- README.md still describes the old project (left unchanged on request).
+- README.md updated for version 1.0.0 (2026-11-25).
