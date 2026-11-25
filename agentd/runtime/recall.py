@@ -45,7 +45,7 @@ def _words(text: str) -> List[str]:
     return [w.strip("'_-") for w in _WORD.findall((text or "").lower()) if w not in _STOP]
 
 
-def save_conversation(task: str, answer: str) -> None:
+def save_conversation(task: str, answer: str, steps: str = "") -> None:
     """Keep the task and its answer for later recall. Secrets are blanked first."""
     from agentd.computer.tools import scrub_secrets
 
@@ -56,6 +56,8 @@ def save_conversation(task: str, answer: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     entry = {"date": f"{datetime.now():%Y-%m-%d %H:%M}", "task": scrub_secrets(task[:1500]),
              "answer": scrub_secrets(answer[:3000])}
+    if steps:
+        entry["steps"] = scrub_secrets(steps[:1500])
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
     if path.stat().st_size > 3_000_000:  # keep the file small: drop the oldest
@@ -119,7 +121,8 @@ def search(query: str, notes_limit: int = 6, conversations_limit: int = 6,
     return {
         "notes": [notes[i] for i in _rank(query, notes, notes_limit)],
         "conversations": [conversations[i] for i in
-                          _rank(query, [c["task"] + " " + c.get("answer", "") for c in conversations], conversations_limit)],
+                          _rank(query, [f"{c['task']} {c.get('answer', '')} {c.get('steps', '')}" for c in conversations],
+                                conversations_limit)],
     }
 
 
@@ -133,7 +136,9 @@ def format_hits(hits: Dict[str, list], budget: int) -> str:
     for note in hits["notes"]:
         lines.append(f"- Note: {_clip(note, 500)}")
     for c in hits["conversations"]:
-        lines.append(f"- {c.get('date', '')}: you were asked \"{_clip(c['task'], 300)}\" and answered: {_clip(c.get('answer', ''), 600)}")
+        steps = f" Steps: {_clip(c['steps'], 400)}" if c.get("steps") else ""
+        lines.append(f"- {c.get('date', '')}: you were asked \"{_clip(c['task'], 300)}\" and answered: "
+                     f"{_clip(c.get('answer', ''), 600)}{steps}")
     out, used = [], 0
     for line in lines:
         if used + len(line) > budget:

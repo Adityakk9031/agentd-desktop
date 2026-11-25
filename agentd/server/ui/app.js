@@ -348,6 +348,16 @@ function copyButton(text) {
   return button;
 }
 
+function learnButton() {
+  return el("button", { class: "copy-answer learn", type: "button", title: "Save how this was done as a skill, so the agent can do it again faster",
+    onclick: (event) => {
+      if (running) return;
+      event.currentTarget.disabled = true;
+      taskInput.value = "Save what you just did as a skill, so you can do it again next time.";
+      $("composer").requestSubmit();
+    } }, "Save as skill");
+}
+
 function renderResult(result) {
   const verification = result.verification || {};
   const summary = (verification.final_output || {}).summary;
@@ -361,7 +371,9 @@ function renderResult(result) {
     board.showFinal(result.agents);
     parts.push(board.node);
   }
-  parts.push(el("div", { class: "body answer" }, renderMarkdown(text), copyButton(text)));
+  // Tasks with several steps can be kept as a skill (Hermes Agent's /learn): the agent writes it, you approve it
+  const learnable = !result.agents && (result.actions || []).filter((x) => x.ok !== false).length >= 2;
+  parts.push(el("div", { class: "body answer" }, renderMarkdown(text), copyButton(text), learnable ? learnButton() : null));
   parts.push(el("div", { class: "meta" },
     pill(`${source} ${percent(verification.confidence)}`, result.needs_review ? "warn" : "ok"),
     issues.length ? pill(`${issues.length} issue${issues.length > 1 ? "s" : ""}`, "fail") : null,
@@ -444,7 +456,8 @@ $("composer").addEventListener("submit", async (event) => {
   // Earlier turns of this conversation, so follow-up messages make sense
   const history = (current ? current.entries.slice(0, -1) : []).slice(-12).map((entry) => (
     entry.kind === "user" ? { role: "user", content: entry.text }
-      : entry.kind === "result" ? { role: "assistant", content: entry.result.final_answer || "" } : null)).filter(Boolean);
+      : entry.kind === "result" ? { role: "assistant", content: (entry.result.final_answer || "")
+          + (entry.result.journal ? "\n\nSteps taken:\n" + entry.result.journal : "") } : null)).filter(Boolean);
 
   const session = current;
   try {

@@ -21,6 +21,17 @@ earlier conversations before each turn, and save_skill in
 agentd/runtime/skills.py follows Hermes Agent's /learn. No code was copied
 from either project.
 
+## Vision control, task journal and control frame
+
+The position grid and position actions in agentd/computer/desktop.py follow the
+grounding approach of UI-TARS (https://github.com/bytedance/UI-TARS-desktop,
+Apache License 2.0) and Agent-S (https://github.com/simular-ai/Agent-S, Apache
+License 2.0). The control frame in agentd/computer/overlay.py follows the
+control overlay of Windows-MCP (https://github.com/CursorTouch/Windows-MCP, MIT
+License). agentd/runtime/journal.py and agentd/safety/lookalike.py apply
+findings of "Following the Agent" (Agentrail Research, 2026). No code was
+copied.
+
 ## OpenClaw
 
 Parts of agentd's design follow OpenClaw (https://github.com/openclaw/openclaw),

@@ -808,8 +808,45 @@ Built (2026-11-25):
 - **Skills it learns**: `save_skill` writes `data/skills/<name>/SKILL.md`
   after asking; the agent offers it after a repeatable multi-step task.
 
-Later from this review: a vision fallback for apps without accessible
-controls; a "Learn from this chat" button; an on-screen "agent in control"
-frame for desktop actions; memory upkeep that tidies old notes
-(OpenMausBot's helper model); a sandbox for commands (bubblewrap on Linux,
-Windows Sandbox on Windows).
+Later from this review: memory upkeep that tidies old notes (OpenMausBot's
+helper model); a sandbox for commands (bubblewrap on Linux, Windows Sandbox on
+Windows). The vision fallback, the learn button and the control frame were
+built the same day (section 16).
+
+## 16. Vision, the task journal and the learn button (2026-11-25)
+
+Source paper: "Following the Agent: Journey Linkage and Behavioral
+Identification of AI Harnesses and Models" (Agentrail Research, 2026). It
+studies how a *product* can rebuild one agent's journey across documents,
+command line, MCP, sign-in and browser. Its main result: links proven by a
+shared identifier were never wrong in production, while links guessed from
+timing were wrong about a third of the time. Lessons applied to agentd:
+
+- **Carry the thread instead of guessing it.** Each task keeps a journal
+  (`agentd/runtime/journal.py`): every step with its surface (files, command,
+  web, browser, desktop, service) and what it touched. The journal goes back
+  with the answer; follow-up messages get it as "Steps taken", so the agent
+  knows which file or page it used last turn, and it is saved with the
+  conversation for recall.
+- **Long tasks keep working.** Old screenshots are dropped (newest two stay)
+  and, past about 60k tokens, old long tool results are cleared. Facts the
+  agent needs later go in task notes (`keep_note`), which are never cleared.
+- **Look-alike addresses.** The paper saw agents land on look-alike domains
+  when no exact address was given. Pages and payment approvals now carry a
+  warning for imitations of well-known sites (`agentd/safety/lookalike.py`).
+
+Also built:
+- **Vision control** (UI-TARS / Agent-S / Claude computer-use style, on the
+  user's own model): `desktop_screenshot` has a 0-1000 position grid;
+  `desktop_zoom`, `desktop_click_at`, `desktop_type_text`, `desktop_scroll`,
+  `desktop_drag` act on positions. Actions ask first like the others; a
+  position on top of another window, agentd itself or a password tool is
+  refused. Tested with Grok 4.6: it opened Paint and drew a diagonal line by
+  picture alone (the stroke came out thick because one drag moved the size
+  slider; `desktop_zoom` exists for precision).
+- **Save as skill** button under multi-step answers: the agent writes a
+  SKILL.md from the journal's real steps, after asking. Tested with Grok 4.6.
+- **"Agent in control" frame**: an orange border and tab just outside the
+  window being controlled; click-through, never takes focus
+  (`agentd/computer/overlay.py`, `AGENTD_CONTROL_FRAME=0` turns it off).
+

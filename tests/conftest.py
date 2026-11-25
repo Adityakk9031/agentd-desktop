@@ -17,3 +17,4 @@ def private_data(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTD_MEMORY_FILE", str(tmp_path / "memory.md"))
     monkeypatch.setenv("AGENTD_CONVERSATIONS_FILE", str(tmp_path / "conversations.jsonl"))
     monkeypatch.setenv("AGENTD_SKILLS_DIR", str(tmp_path / "skills"))
+    monkeypatch.setenv("AGENTD_CONTROL_FRAME", "0")  # the frame has its own test

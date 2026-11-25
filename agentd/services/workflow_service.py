@@ -46,6 +46,6 @@ def _keep(task: str, result: Dict[str, Any]) -> None:
     try:
         from agentd.runtime.recall import save_conversation
 
-        save_conversation(task, result.get("final_answer") or "")
+        save_conversation(task, result.get("final_answer") or "", result.get("journal") or "")
     except Exception as exc:
         logger.warning(f"Could not save the conversation for recall: {exc}")

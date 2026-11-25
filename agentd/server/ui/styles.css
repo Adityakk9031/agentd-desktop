@@ -263,6 +263,7 @@ dialog pre.notes:empty { display: none; }
 .md tbody tr:last-child td { border-bottom: 0; }
 .copy-answer { margin-top: 8px; opacity: 0; transition: opacity .15s; }
 .msg.agent:hover .copy-answer, .copy-answer:focus { opacity: 1; }
+.copy-answer.learn { margin-left: 6px; }
 .board .agent .report { margin-top: 6px; color: var(--text); font-size: 14px; }
 .md table { overflow-wrap: normal; word-break: normal; }
 .md th:first-child, .md td:first-child { white-space: nowrap; font-weight: 600; }
