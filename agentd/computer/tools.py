@@ -214,8 +214,11 @@ def build_computer_tools(gate: ActionGate) -> List[StructuredTool]:
         """Save a short fact about the user or their preferences so future conversations know it."""
         path = memory_file()
         path.parent.mkdir(parents=True, exist_ok=True)
+        clean = scrub_secrets(" ".join(note.split())[:500])
+        known = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+        if f": {clean.lower()}\n" in known:  # the same note again: keep memory tidy
+            return "Already remembered."
         with path.open("a", encoding="utf-8") as handle:
-            clean = scrub_secrets(note.strip()[:500])
             handle.write(f"- {datetime.now():%Y-%m-%d}: {clean}\n")
         return "Remembered." + (" Secret-looking parts were left out; passwords belong in Logins." if "«redacted»" in clean else "")
 

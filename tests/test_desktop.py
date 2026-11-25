@@ -162,3 +162,15 @@ async def test_unknown_refs_and_bad_keys_are_refused(notepad):
     await t["desktop_switch"].ainvoke({"window_title": name})
     assert "There is no d999" in await t["desktop_click"].ainvoke({"ref": "d999"})
     assert (await t["desktop_keys"].ainvoke({"keys": "rm -rf /"})).startswith("ERROR")
+
+
+def test_the_installer_ships_what_desktop_control_needs():
+    """Screenshots need Pillow and the password-manager check needs psutil; the installer bundles the desktop extra."""
+    import re as _re
+    from pathlib import Path
+
+    pyproject = (Path(__file__).resolve().parent.parent / "pyproject.toml").read_text(encoding="utf-8")
+    extra = _re.search(r"^desktop = \[(.*)\]$", pyproject, _re.M).group(1).lower()
+    assert "uiautomation" in extra and "pillow" in extra and "psutil" in extra
+    build = (Path(__file__).resolve().parent.parent / "desktop" / "build_runtime.py").read_text(encoding="utf-8")
+    assert '"models,browser,desktop,channels"' in build

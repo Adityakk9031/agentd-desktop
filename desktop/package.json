@@ -1,7 +1,7 @@
 {
   "name": "agentd-desktop",
   "productName": "agentd",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Desktop app for agentd, the open-source agent runtime.",
   "license": "Apache-2.0",
   "private": true,

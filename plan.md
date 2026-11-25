@@ -744,11 +744,13 @@ as local storage.
    installers are trusted.
 4. **First release.** No version has been published, so the update popup has
    nothing to offer yet.
-5. Keys in the OS keychain: **vault key done (2026-11-17)**; model keys are still in `.env`.
+5. ~~Keys in the OS keychain~~: **done (2026-11-25)**: the vault key and every model API key entered in
+   the app live in Windows Credential Manager / macOS Keychain (`agentd/safety/keys.py`); a key set by hand in
+   `.env` still works and wins.
 6. ~~Mouse-and-keyboard control of other desktop apps~~: **done on Windows
    (2026-11-17)** through UI Automation (see desktop.py); macOS and Linux
    still to do. Vision-only control for apps with no accessible controls
-   (Agent-S / UI-TARS style grounding models) is a later step.
+   (Agent-S / UI-TARS style grounding) was **done 2026-11-25** (section 16).
 7. **Resume after a restart.** A task stopped by closing the app is lost;
    needs a LangGraph checkpointer.
 8. ~~Searchable memory~~: **done (2026-11-25)**: recall of notes and earlier
@@ -850,3 +852,27 @@ Also built:
   window being controlled; click-through, never takes focus
   (`agentd/computer/overlay.py`, `AGENTD_CONTROL_FRAME=0` turns it off).
 
+## 17. Version 1.0.0 (2026-11-25)
+
+Version set to 1.0.0 in `agentd/__init__.py` and `desktop/package.json` (a
+test and the release workflow check that they agree). Not published: no tag
+pushed, no GitHub release yet.
+
+Ready for testing: everything in sections 14-16, model keys in the keychain,
+duplicate notes skipped, and two packaging fixes found while building the
+installer (Pillow and psutil were missing from the bundled runtime, so
+screenshots and the password-manager check would have failed in the
+installed app).
+
+Still not in version 1:
+- macOS and Linux builds (code is cross-platform except desktop control;
+  never built or run on a Mac).
+- Code signing (needs an Apple Developer account and a Windows certificate;
+  until then Windows SmartScreen warns on install).
+- Resuming a task after the app is closed mid-task.
+- A browser for agent teams (team agents use files, commands and services).
+- A sandbox for commands (Windows Sandbox is not on Windows Home).
+- Not tried for real yet: a full purchase on a live shop, Telegram / Discord /
+  Slack driving the agent, a third-party MCP server added in the app, a saved
+  login on a real site. See docs/v1-test-checklist.md.
+- README.md still describes the old project (left unchanged on request).

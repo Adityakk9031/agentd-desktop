@@ -1,5 +1,9 @@
 """Pytest fixtures for the offline unit test suite."""
 
+import os
+
+os.environ["AGENTD_KEYCHAIN"] = "0"  # before any agentd import: never read the real keychain
+
 import pytest
 
 from agentd.safety.audit_log import AuditLog
@@ -18,3 +22,4 @@ def private_data(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTD_CONVERSATIONS_FILE", str(tmp_path / "conversations.jsonl"))
     monkeypatch.setenv("AGENTD_SKILLS_DIR", str(tmp_path / "skills"))
     monkeypatch.setenv("AGENTD_CONTROL_FRAME", "0")  # the frame has its own test
+    monkeypatch.setenv("AGENTD_KEYCHAIN", "0")  # never the real keychain; tests/test_keys.py uses a fake one

@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 
 # Load environment variables first before importing agents/services
 load_dotenv()
+from agentd.safety.keys import load_keys  # noqa: E402
+
+load_keys()  # API keys saved in the OS keychain (a key in .env or the environment wins)
 
 from agentd.services.workflow_service import WorkflowService
 from agentd.safety.audit_log import AuditLog

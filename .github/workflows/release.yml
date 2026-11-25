@@ -1,6 +1,6 @@
 # Publishes a release when a version tag is pushed:
-#   1. set the version in agentd/__init__.py (e.g. __version__ = "0.2.0")
-#   2. git tag v0.2.0 && git push origin v0.2.0
+#   1. set the version in agentd/__init__.py (e.g. __version__ = "1.1.0") and desktop/package.json
+#   2. git tag v1.1.0 && git push origin v1.1.0
 # Installed apps see the new release and offer "Update now".
 name: release
 
@@ -27,6 +27,11 @@ jobs:
           tag_version="${GITHUB_REF_NAME#v}"
           if [ "$code_version" != "$tag_version" ]; then
             echo "Tag $GITHUB_REF_NAME does not match __version__ $code_version" >&2
+            exit 1
+          fi
+          app_version=$(python -c "import json; print(json.load(open('desktop/package.json'))['version'])")
+          if [ "$app_version" != "$tag_version" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match desktop/package.json version $app_version" >&2
             exit 1
           fi
 

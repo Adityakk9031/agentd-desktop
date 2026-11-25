@@ -149,6 +149,9 @@ def main(argv=None) -> int:
     from dotenv import find_dotenv, load_dotenv
 
     load_dotenv(find_dotenv(usecwd=True))
+    from agentd.safety.keys import load_keys
+
+    load_keys()
 
     parser = argparse.ArgumentParser(prog="agentd", description="Open-source agent runtime.")
     sub = parser.add_subparsers(dest="command", required=True)

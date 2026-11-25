@@ -228,3 +228,14 @@ async def test_a_denied_action_is_reported_as_not_done(home):
 
     assert not (home / "x.txt").exists()
     assert result["actions"][0]["ok"] is False
+
+
+@pytest.mark.asyncio
+async def test_the_same_note_is_remembered_once(tmp_path, monkeypatch):
+    from agentd.computer.tools import build_computer_tools
+
+    monkeypatch.setenv("AGENTD_MEMORY_FILE", str(tmp_path / "memory.md"))
+    remember = {t.name: t for t in build_computer_tools(ActionGate(mode="auto"))}["remember"]
+    assert await remember.ainvoke({"note": "The user is vegetarian"}) == "Remembered."
+    assert await remember.ainvoke({"note": "the user is  vegetarian"}) == "Already remembered."
+    assert (tmp_path / "memory.md").read_text(encoding="utf-8").count("vegetarian") == 1

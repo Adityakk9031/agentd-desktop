@@ -88,3 +88,13 @@ def test_a_failed_install_reports_why_and_does_not_restart():
 
 def test_this_checkout_counts_as_source():
     assert updates.install_kind() == "source"
+
+
+def test_the_app_and_the_runtime_carry_the_same_version():
+    import json
+    from pathlib import Path
+
+    import agentd
+
+    package = json.loads((Path(__file__).resolve().parent.parent / "desktop" / "package.json").read_text(encoding="utf-8"))
+    assert package["version"] == agentd.__version__  # the installer name and the update check must agree

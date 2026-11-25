@@ -1,8 +1,8 @@
 """Save a model choice and its API key from the app's settings screen.
 
-Keys are written to the local .env file (never returned by any API) and
-applied to the running process, so no restart is needed. Moving them to the
-operating system keychain is planned.
+Keys go to the operating system keychain (agentd.safety.keys), or to the local
+.env file when no keychain is available. They are never returned by any API,
+and are applied to the running process, so no restart is needed.
 """
 
 import os
@@ -76,7 +76,9 @@ def save_model_setting(
     path.touch(exist_ok=True)
     updates = {"AGENTD_MODEL_DEFAULT": spec.id, "AGENTD_MODEL_DEFAULT_FALLBACKS": ",".join(fallbacks)}
     if api_key and key_env:
-        updates[key_env] = api_key
+        from agentd.safety.keys import store_key
+
+        store_key(key_env, api_key, path)
     for name, value in updates.items():
         set_key(str(path), name, value, quote_mode="never")
         os.environ[name] = value
@@ -130,10 +132,9 @@ def save_provider_key(
 
     models = (lister or list_models)(provider, api_key)  # raises if the provider rejects the key
 
-    path = Path(env_path) if env_path else env_file_path()
-    path.touch(exist_ok=True)
-    set_key(str(path), info.api_key_env, api_key, quote_mode="never")
-    os.environ[info.api_key_env] = api_key
+    from agentd.safety.keys import store_key
+
+    store_key(info.api_key_env, api_key, Path(env_path) if env_path else env_file_path())
     model_config.bump_config_version()
     clear_catalog_cache()
     return {"ok": True, "provider": provider, "models": models}
