@@ -10,6 +10,17 @@ No code was copied from them. The work is done by the uiautomation package
 (https://github.com/yinkaisheng/Python-UIAutomation-for-Windows, Apache License
 2.0), installed as a dependency.
 
+## OpenMausBot and Hermes Agent
+
+agentd/safety/reviewer.py (the "Approve routine actions" level) follows the
+"Approve for me" approval level of OpenMausBot
+(https://github.com/milind-soni/OpenMausBot, Apache License 2.0) and the smart
+approvals of Hermes Agent (https://github.com/NousResearch/hermes-agent, MIT
+License). agentd/runtime/recall.py follows OpenMausBot's recall of notes and
+earlier conversations before each turn, and save_skill in
+agentd/runtime/skills.py follows Hermes Agent's /learn. No code was copied
+from either project.
+
 ## OpenClaw
 
 Parts of agentd's design follow OpenClaw (https://github.com/openclaw/openclaw),

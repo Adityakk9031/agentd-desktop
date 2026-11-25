@@ -233,8 +233,30 @@ def build_computer_tools(gate: ActionGate) -> List[StructuredTool]:
             return f"No results for '{query}'."
         return "\n\n".join(f"{i}. {r['title']}\n   {r['url']}\n   {r['snippet']}" for i, r in enumerate(results, 1))
 
+    @_safe
+    async def search_memory(query: str) -> str:
+        """Search your notes about the user and your earlier conversations with them (for example "what did we decide about the trip", "my laptop model"). Use it when the user refers to something from before."""
+        from agentd.runtime.recall import format_hits, search
+
+        text = format_hits(search(query), 8000)
+        return text or f"Nothing in your notes or earlier conversations matches '{query}'."
+
+    @_safe
+    async def forget(text: str) -> str:
+        """Delete saved notes that contain this text, when the user asks you to forget something or a note is wrong."""
+        needle = (text or "").strip().lower()
+        path = memory_file()
+        if len(needle) < 3 or not path.is_file():
+            return "Nothing was forgotten: give a few words from the note."
+        lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        kept = [line for line in lines if not (line.startswith("- ") and needle in line.lower())]
+        removed = len(lines) - len(kept)
+        if removed:
+            path.write_text("".join(kept), encoding="utf-8")
+        return f"Forgot {removed} note(s)." if removed else f"No note contains '{text}'."
+
     functions = [list_files, read_file, search_files, write_file, edit_file, run_command, fetch_url, web_search,
-                 open_on_computer, remember]
+                 open_on_computer, remember, search_memory, forget]
     return [StructuredTool.from_function(coroutine=f, name=f.__name__, description=(f.__doc__ or "").strip()) for f in functions]
 
 

@@ -74,8 +74,9 @@
               <option value="medium">Effort: medium</option>
               <option value="high">Effort: high</option>
             </select>
-            <select id="access" class="chip" title="May the agent change files and run commands without asking?">
+            <select id="access" class="chip" title="May the agent change files and run commands without asking? With &quot;Approve routine actions&quot; a second AI check approves everyday actions and asks you about the rest.">
               <option value="ask">Ask before acting</option>
+              <option value="smart">Approve routine actions</option>
               <option value="auto">Full access</option>
             </select>
             <span id="mode-chip" class="mode-chip" hidden>Team of agents</span>
@@ -158,6 +159,14 @@
               </label>
               <label id="auto-model-field" hidden>Model
                 <select id="auto-model"></select>
+              </label>
+            </div>
+            <div class="row">
+              <label>When it wants to change something
+                <select id="auto-access">
+                  <option value="ask">Don't change anything (report only)</option>
+                  <option value="smart">Allow routine changes (an AI check approves them)</option>
+                </select>
               </label>
             </div>
           </div>

@@ -751,7 +751,9 @@ as local storage.
    (Agent-S / UI-TARS style grounding models) is a later step.
 7. **Resume after a restart.** A task stopped by closing the app is lost;
    needs a LangGraph checkpointer.
-8. **Searchable memory** (Phase 4): the agent's notes are one file today.
+8. ~~Searchable memory~~: **done (2026-11-25)**: recall of notes and earlier
+   conversations before each task, `search_memory` and `forget` tools
+   (keyword ranking, offline; see section 15).
 9. **Browser for agent teams**: parallel agents would share one window, so
    team agents have no browser yet.
 10. ~~Effort level for automations~~: **done (2026-11-17).**
@@ -775,3 +777,39 @@ Goose), approval modes (Goose), MCP tools (Goose), browser agent
 Later: LiteLLM as an optional provider for 100+ models; Docker sandbox for
 commands (OpenHands, cua); vision grounding for apps without controls
 (Agent-S, UI-TARS); multi-agent workforce ideas (Eigent).
+
+## 15. OpenMausBot and more (reviewed 2026-11-25)
+
+Repos studied (licences checked; ideas adapted, no code copied):
+
+| Repo | Licence | Stars | What we took |
+| --- | --- | --- | --- |
+| [OpenMausBot](https://github.com/milind-soni/OpenMausBot) | Apache-2.0 | 27.7k | "Approve for me" access level; recall of notes and past chats before each turn |
+| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | MIT | 266k | Smart approvals (reviewer model, one-word verdict, untrusted text fenced); `/learn` turning a finished task into a skill |
+| [nanobot](https://github.com/HKUDS/nanobot) | MIT | 50k | Confirmed the memory + skills shape; nothing new to take |
+| [Windows-MCP](https://github.com/CursorTouch/Windows-MCP) | MIT | 12k | Same UI Automation approach as ours; later: clipboard and a "the agent is in control" overlay |
+| [Magentic-UI](https://github.com/microsoft/magentic-ui) | MIT | 10k | Approval sources (user / session / policy / classifier) match our audit log |
+| [mem0](https://github.com/mem0ai/mem0) | Apache-2.0 | 69k | Not taken: needs a vector store and an extra model call per message |
+
+Built (2026-11-25):
+- **Approve routine actions** (access level `smart`): before an action that
+  would ask, a second model call answers APPROVE / DENY / ESCALATE. Only a
+  clear APPROVE runs without asking; anything else, or any error, asks you.
+  Only local actions are reviewed (files, commands, opening, desktop apps);
+  logins, connected services, purchases, hand-overs and skills always ask.
+  Automations can use it too ("Allow routine changes"); full access is never
+  offered to an automation. Tested with Grok 4.6: a shopping-list file was
+  approved; disabling Windows Defender and a delete with an "APPROVE" comment
+  were both refused.
+- **Recall**: each finished task is kept in `data/conversations.jsonl`
+  (secrets blanked). Before a task, the best matching notes and past chats
+  go in front of it, marked as information, not instructions.
+  `AGENTD_AUTO_RECALL=0` turns it off.
+- **Skills it learns**: `save_skill` writes `data/skills/<name>/SKILL.md`
+  after asking; the agent offers it after a repeatable multi-step task.
+
+Later from this review: a vision fallback for apps without accessible
+controls; a "Learn from this chat" button; an on-screen "agent in control"
+frame for desktop actions; memory upkeep that tidies old notes
+(OpenMausBot's helper model); a sandbox for commands (bubblewrap on Linux,
+Windows Sandbox on Windows).

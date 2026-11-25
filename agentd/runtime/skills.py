@@ -73,3 +73,33 @@ def build_skill_tool(skills: Dict[str, Dict[str, str]]) -> List[StructuredTool]:
         return skill["body"]
 
     return [StructuredTool.from_function(coroutine=use_skill, name="use_skill", description=use_skill.__doc__)]
+
+
+_SKILL_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$")
+
+
+def build_learning_tools(gate) -> List[StructuredTool]:
+    """``save_skill``: turn a way of doing a task that worked into a skill for next time (from Hermes Agent's /learn)."""
+
+    async def save_skill(name: str, description: str, instructions: str) -> str:
+        """Save a reusable skill: step-by-step instructions for a kind of task, so next time you can do it faster. Only when the user asks, or agrees after you offer. name: lowercase-with-hyphens; description: one sentence saying when to use it; instructions: the steps, tools and pitfalls, written as Markdown."""
+        from agentd.computer.tools import scrub_secrets
+
+        name = (name or "").strip().lower()
+        description = " ".join((description or "").split())[:200]
+        body = scrub_secrets((instructions or "").strip())[:12000]
+        if not _SKILL_NAME.match(name):
+            return "ERROR: name must be 3-64 lowercase letters, digits and hyphens, like 'weekly-report'."
+        if not description or len(body) < 40:
+            return "ERROR: give a one-sentence description and the steps."
+        folder = user_skills_dir() / name
+        replacing = (folder / "SKILL.md").is_file()
+        if not await gate.request("skill", f"{'Update' if replacing else 'Save'} the skill \"{name}\"",
+                                  f"{description}\n\n{body[:3000]}"):
+            return "The user declined saving this skill."
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n---\n\n{body}\n", encoding="utf-8")
+        return f"Saved the skill '{name}' in {folder}. It is available from the next task."
+
+    return [StructuredTool.from_function(coroutine=save_skill, name="save_skill", description=save_skill.__doc__)]
+

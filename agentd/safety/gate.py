@@ -3,17 +3,21 @@
 Every tool that writes a file, runs a command or opens something calls
 ``await gate.request(...)`` first. In "ask" mode the run waits there until a
 person answers (allow once / allow for the rest of this task / deny). In
-"auto" mode it proceeds without asking. Either way the hard rules in
-agentd.computer.safety are applied before the gate is even reached.
+"auto" mode it proceeds without asking. In "smart" mode a reviewer model
+(agentd.safety.reviewer) looks first: routine actions run, the rest ask.
+Either way the hard rules in agentd.computer.safety are applied before the gate is even reached.
 
 The gate lives outside the model: nothing the model writes can answer it.
 """
 
 import asyncio
 import uuid
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
-ASK, AUTO = "ask", "auto"
+from agentd.safety.reviewer import REVIEWABLE  # logins, services, purchases and hand-overs always ask
+
+ASK, AUTO, SMART = "ask", "auto", "smart"
+MODES = (ASK, AUTO, SMART)
 ONCE, ALWAYS, DENY = "once", "always", "deny"
 
 
@@ -25,8 +29,12 @@ class ActionGate:
         interactive: bool = True,
         audit_log: Any = None,
         timeout_seconds: float = 900,
+        reviewer: Optional[Callable[..., Awaitable[str]]] = None,
+        task: str = "",
     ):
-        self.mode = mode if mode in (ASK, AUTO) else ASK
+        self.mode = mode if mode in MODES else ASK
+        self.reviewer = reviewer            # smart mode: async (kind, title, detail, task) -> approve|deny|escalate
+        self.task = task                    # what the user asked for, so the reviewer can check the action fits
         self.on_event = on_event
         self.interactive = interactive      # False: nobody is there to answer (automations)
         self.audit = audit_log
@@ -50,6 +58,8 @@ class ActionGate:
         if not force and (self.mode == AUTO or kind in self.allowed_kinds):
             self._record(kind, title, "allowed")
             return True
+        if not force and self.mode == SMART and kind in REVIEWABLE and await self._reviewed(kind, title, detail):
+            return True
         if not self.interactive:
             self._record(kind, title, "declined-unattended")
             return False
@@ -70,6 +80,21 @@ class ActionGate:
         self._emit({"type": "approval_resolved", "id": action_id, "decision": decision})
         self._record(kind, title, "denied" if decision == DENY else "approved")
         return decision in (ONCE, ALWAYS)
+
+    async def _reviewed(self, kind: str, title: str, detail: str) -> bool:
+        """True when the reviewer approved. Anything else falls through to asking the user."""
+        reviewer = self.reviewer
+        if reviewer is None:
+            from agentd.safety.reviewer import review as reviewer
+        try:
+            outcome = await reviewer(kind, title, detail, self.task)
+        except Exception:
+            outcome = "escalate"
+        if outcome != "approve":
+            return False
+        self._record(kind, title, "allowed-by-reviewer")
+        self._emit({"type": "reviewed", "kind": kind, "title": title})
+        return True
 
     def resolve(self, action_id: str, decision: str) -> bool:
         """Answer a pending request. False if there is no such request."""

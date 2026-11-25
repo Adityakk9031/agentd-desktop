@@ -322,6 +322,7 @@ function activityFeed(runId) {
         if (event.type === "action") addAction(event.id, event.summary, "running");
         else if (event.type === "action_done" && rows.has(event.id)) rows.get(event.id).className = "act " + (event.ok ? "ok" : "fail");
         else if (event.type === "approval") question(event);
+        else if (event.type === "reviewed") addAction("reviewed-" + list.childElementCount, "Approved by the reviewer: " + event.title, "ok reviewed");
         else if (event.type === "approval_resolved") {
           const card = asks.querySelector(`[data-ask="${event.id}"]`);
           if (card && !card.classList.contains("done")) { card.classList.add("done"); card.querySelector(".actions").replaceChildren(pill(event.decision === "deny" ? "Denied" : "Allowed", event.decision === "deny" ? "fail" : "ok")); }
@@ -739,6 +740,7 @@ async function loadAutomations() {
       return el("div", { class: "card" },
         el("div", { class: "title" }, a.name, pill(a.mode === "team" ? "team of agents" : "one agent"),
           pill(a.model ? a.model.split(":").slice(1).join(":") : "chat's model"),
+          a.access === "smart" ? pill("routine changes allowed") : null,
           a.running ? pill("running now", "warn") : null,
           el("label", { class: "switch" },
             el("input", { type: "checkbox", checked: a.enabled, onchange: (e) => act(`/api/automations/${a.id}`, { method: "PATCH", body: JSON.stringify({ enabled: e.target.checked }) }) }),
@@ -786,6 +788,7 @@ $("automation-form").addEventListener("submit", async (event) => {
       every_minutes: Number($("auto-every").value), daily_time: $("auto-time").value || "09:00",
       weekdays: $("auto-days").value ? $("auto-days").value.split(",").map(Number) : [],
       effort: $("auto-effort").value,
+      access: $("auto-access").value,
       model: provider ? provider + ":" + $("auto-model").value : "",
     }) });
     $("automation-form").reset();
@@ -880,7 +883,7 @@ function route() {
 }
 window.addEventListener("hashchange", route);
 
-$("access").value = store.get("agentd.access", "ask") === "auto" ? "auto" : "ask";
+$("access").value = ["auto", "smart"].includes(store.get("agentd.access", "ask")) ? store.get("agentd.access", "ask") : "ask";
 $("access").addEventListener("change", async () => {
   store.set("agentd.access", $("access").value);
   if (running && running.runId) {  // applies to the task already running, from its next action

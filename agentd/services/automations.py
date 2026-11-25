@@ -46,6 +46,7 @@ class Automation:
     model: str = ""          # "provider:model", or "" to use whatever the chat uses
     weekdays: List[int] = field(default_factory=list)  # daily only: 0=Mon..6=Sun; empty = every day
     effort: str = ""         # "low" | "medium" | "high"; "" = the model's default
+    access: str = "ask"      # "ask": changes are declined (nobody is there); "smart": a reviewer approves routine ones
     enabled: bool = True
     created_at: str = ""
     next_run_at: Optional[str] = None
@@ -157,17 +158,21 @@ class AutomationStore:
 
     def create(self, name: str, task: str, mode: str = "single", kind: str = "daily",
                every_minutes: int = 60, daily_time: str = "09:00", model: str = "",
-               weekdays: Optional[List[int]] = None, effort: str = "", now: Optional[datetime] = None) -> Automation:
+               weekdays: Optional[List[int]] = None, effort: str = "", access: str = "ask",
+               now: Optional[datetime] = None) -> Automation:
         model = (model or "").strip()
         weekdays = sorted(set(weekdays or []))
         effort = (effort or "").strip().lower()
         if effort not in ("", "low", "medium", "high"):
             raise AutomationError("Effort must be low, medium or high.")
+        access = (access or "ask").strip().lower()
+        if access not in ("ask", "smart"):  # full access is never offered to a run nobody watches
+            raise AutomationError("Access must be 'ask' or 'smart'.")
         validate(name, task, mode, kind, every_minutes, daily_time, model, weekdays)
         now = now or datetime.now()
         a = Automation(
             id=uuid.uuid4().hex[:12], name=name.strip()[:80], task=task.strip(), mode=mode, kind=kind,
-            every_minutes=int(every_minutes), daily_time=daily_time, model=model, weekdays=weekdays, effort=effort,
+            every_minutes=int(every_minutes), daily_time=daily_time, model=model, weekdays=weekdays, effort=effort, access=access,
             created_at=now.isoformat(timespec="seconds"),
         )
         a.next_run_at = next_run(a, now).isoformat(timespec="seconds")
@@ -273,7 +278,7 @@ class AutomationScheduler:
 
         effort_token = set_effort(automation.effort) if automation.effort else None
         try:
-            result = await self.runner(automation.task, automation.mode)
+            result = await self.runner(automation.task, automation.mode, access=automation.access)
             answer = result.get("final_answer") or ((result.get("verification") or {}).get("final_output") or {}).get("summary") or "Done."
             status = "review" if result.get("needs_review") else "ok"
             if status == "review" and self.approval_queue is not None:

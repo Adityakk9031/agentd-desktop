@@ -57,7 +57,7 @@ async def test_run_records_result_and_reschedules(store):
     a = store.create("A", "Say hi", mode="team", kind="interval", every_minutes=30, now=NOON)
     seen = []
 
-    async def runner(task, mode):
+    async def runner(task, mode, **_):
         seen.append((task, mode))
         return {"final_answer": "Hi!", "needs_review": False}
 
@@ -72,7 +72,7 @@ async def test_run_records_result_and_reschedules(store):
 async def test_failed_run_is_recorded_not_raised(store):
     a = store.create("A", "task", kind="interval", every_minutes=30, now=NOON)
 
-    async def runner(task, mode):
+    async def runner(task, mode, **_):
         raise RuntimeError("no model configured")
 
     scheduler = AutomationScheduler(store, runner)
@@ -91,7 +91,7 @@ async def test_review_results_go_to_the_approval_queue(store):
         def create(self, **kwargs):
             parked.append(kwargs)
 
-    async def runner(task, mode):
+    async def runner(task, mode, **_):
         return {"final_answer": "Draft", "needs_review": True, "plan": {}, "executor_results": [], "verification": {}}
 
     done = await AutomationScheduler(store, runner, approval_queue=Queue()).run_now(a.id)
@@ -115,7 +115,7 @@ async def test_automation_runs_with_its_own_model(store, monkeypatch):
     a = store.create("A", "task", kind="interval", every_minutes=30, model="xai:grok-4.7", now=NOON)
     seen = {}
 
-    async def runner(task, mode):
+    async def runner(task, mode, **_):
         seen["during"] = [s.id for s in load_models_config().chain("planner")]
         return {"final_answer": "ok"}
 
@@ -139,7 +139,7 @@ async def test_automation_runs_with_its_own_effort(store):
     a = store.create("A", "task", kind="interval", every_minutes=30, effort="low", now=NOON)
     seen = {}
 
-    async def runner(task, mode):
+    async def runner(task, mode, **_):
         seen["effort"] = current_effort()
         return {"final_answer": "ok"}
 

@@ -53,12 +53,13 @@ async def lifespan(app: FastAPI):
     channel_manager = build_channel_manager(workflow_service, approval_queue)
     await channel_manager.start_all()
 
-    async def run_automation_task(task: str, mode: str):
+    async def run_automation_task(task: str, mode: str, access: str = "ask"):
         from agentd.safety.gate import ActionGate
 
         # Nobody is watching a scheduled run: it may read and look things up, but
-        # anything that would change the computer is declined and reported.
-        gate = ActionGate(interactive=False, audit_log=audit_log)
+        # anything that would change the computer is declined and reported, unless
+        # the automation lets the reviewer approve routine changes ("smart").
+        gate = ActionGate(mode="smart" if access == "smart" else "ask", interactive=False, audit_log=audit_log, task=task)
         if mode == "team":
             return await workflow_service.run_team(task, gate=gate)
         return await workflow_service.run_agent(task, gate=gate)
@@ -151,7 +152,7 @@ class TaskRequest(BaseModel):
     task: str
     mode: str = "agent"   # "agent" (one tool-using agent) or "team" (several agents)
     run_id: Optional[str] = None  # lets the app follow progress at /api/runs/{run_id}
-    access: str = "ask"   # "ask": pause before changing anything; "auto": act without asking
+    access: str = "ask"   # "ask": pause before changing anything; "smart": a reviewer approves routine actions; "auto": act without asking
     effort: Optional[str] = None  # "low" | "medium" | "high"; empty = the model's own default
     history: Optional[list[Dict[str, str]]] = None  # earlier turns of this conversation
 
@@ -345,7 +346,7 @@ def _track_run(run_id: Optional[str]) -> list:
 
 
 class AccessChange(BaseModel):
-    access: str  # "ask" | "auto"
+    access: str  # "ask" | "smart" | "auto"
 
 
 @app.post("/api/runs/{run_id}/access")
@@ -354,8 +355,8 @@ async def change_access(run_id: str, request: AccessChange):
     gate = GATES.get(run_id)
     if gate is None:
         raise HTTPException(status_code=404, detail="That task is not running")
-    if request.access not in ("ask", "auto"):
-        raise HTTPException(status_code=400, detail="access must be 'ask' or 'auto'")
+    if request.access not in ("ask", "smart", "auto"):
+        raise HTTPException(status_code=400, detail="access must be 'ask', 'smart' or 'auto'")
     gate.mode = request.access
     return {"ok": True, "access": gate.mode}
 
@@ -491,6 +492,7 @@ class AutomationRequest(BaseModel):
     model: str = ""  # "provider:model"; empty = same model as the chat
     weekdays: list[int] = []  # daily only: 0=Mon..6=Sun; empty = every day
     effort: str = ""  # "low" | "medium" | "high"; empty = the model's default
+    access: str = "ask"  # "ask": changes are declined; "smart": a reviewer approves routine changes
 
 
 class AutomationToggle(BaseModel):
